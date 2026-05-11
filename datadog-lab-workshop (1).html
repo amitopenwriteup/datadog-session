@@ -1,0 +1,2012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Hands-On Lab Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8f9fb;
+    --bg-card: #f1f3f7;
+    --bg-terminal: #1e2533;
+    --border: #dde1e9;
+    --border-bright: #c4cad6;
+    --dd-purple: #6d28d9;
+    --dd-violet: #5b21b6;
+    --dd-green: #059669;
+    --dd-cyan: #0891b2;
+    --dd-amber: #d97706;
+    --dd-red: #dc2626;
+    --dd-pink: #db2777;
+    --text-primary: #111827;
+    --text-secondary: #374151;
+    --text-muted: #6b7280;
+    --text-code: #a8ff78;
+    --accent-glow: rgba(109, 40, 217, 0.07);
+    --green-glow: rgba(5, 150, 105, 0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY removed for light theme ── */
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 280px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-logo {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .logo-icon {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, var(--dd-purple), var(--dd-cyan));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-left: 44px;
+  }
+
+  .sidebar-progress {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .progress-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--dd-purple), var(--dd-cyan));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 0;
+  }
+
+  .nav-section-label {
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 12px 24px 6px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    position: relative;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .nav-item:hover {
+    background: var(--accent-glow);
+    color: var(--text-primary);
+    border-left-color: var(--dd-violet);
+  }
+
+  .nav-item.active {
+    background: var(--accent-glow);
+    color: var(--text-primary);
+    border-left-color: var(--dd-purple);
+  }
+
+  .nav-item .nav-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+  }
+
+  .nav-item.active .nav-icon {
+    background: linear-gradient(135deg, var(--dd-purple), var(--dd-violet));
+  }
+
+  .nav-item .nav-badge {
+    margin-left: auto;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-item.done .nav-badge {
+    background: rgba(16, 217, 140, 0.15);
+    color: var(--dd-green);
+  }
+
+  .nav-sub { padding-left: 60px; font-size: 12.5px; font-weight: 400; color: var(--text-muted); }
+  .nav-sub.active { color: var(--dd-cyan); }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .env-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .env-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--dd-green);
+    box-shadow: 0 0 6px var(--dd-green);
+    animation: pulse-dot 2s ease infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .env-info { flex: 1; }
+  .env-name { font-size: 12px; font-weight: 700; }
+  .env-detail { font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: 280px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  .topbar {
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    gap: 16px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .topbar-breadcrumb {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-breadcrumb span { color: var(--dd-purple); }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-sm {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--text-secondary);
+  }
+  .btn-outline:hover { border-color: var(--dd-purple); color: var(--dd-purple); }
+
+  .btn-primary {
+    background: var(--dd-purple);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--dd-violet); }
+
+  /* ── LAB SECTIONS ── */
+  .lab-section { display: none; padding: 40px; animation: fadeIn 0.3s ease; }
+  .lab-section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── MODULE HEADER ── */
+  .module-header {
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  .module-num {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--dd-purple), #4c1d95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(124,58,237,0.35);
+  }
+
+  .module-meta { flex: 1; }
+
+  .module-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dd-cyan);
+    background: rgba(34,211,238,0.08);
+    border: 1px solid rgba(34,211,238,0.2);
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  .module-title {
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+
+  .module-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .module-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .dot-purple { background: var(--dd-purple); }
+  .dot-green { background: var(--dd-green); }
+  .dot-amber { background: var(--dd-amber); }
+  .dot-cyan { background: var(--dd-cyan); }
+
+  /* ── OBJECTIVE CARDS ── */
+  .objectives-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+
+  .obj-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+
+  .obj-card:hover { border-color: var(--border-bright); }
+
+  .obj-icon { font-size: 20px; flex-shrink: 0; }
+
+  .obj-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .obj-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  .info-box .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  .info-note { background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.2); }
+  .info-warning { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); }
+  .info-danger { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2); }
+  .info-success { background: rgba(16,217,140,0.06); border: 1px solid rgba(16,217,140,0.2); }
+  .info-tip { background: rgba(124,58,237,0.07); border: 1px solid rgba(124,58,237,0.2); }
+
+  /* ── STEP BLOCKS ── */
+  .step-block {
+    margin-bottom: 28px;
+    position: relative;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--dd-purple);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(124,58,237,0.4);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  .step-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .badge-cmd { background: rgba(16,217,140,0.12); color: var(--dd-green); border: 1px solid rgba(16,217,140,0.25); }
+  .badge-config { background: rgba(34,211,238,0.1); color: var(--dd-cyan); border: 1px solid rgba(34,211,238,0.2); }
+  .badge-verify { background: rgba(245,158,11,0.1); color: var(--dd-amber); border: 1px solid rgba(245,158,11,0.2); }
+  .badge-concept { background: rgba(124,58,237,0.1); color: #a78bfa; border: 1px solid rgba(124,58,237,0.2); }
+
+  .step-desc {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-bottom: 12px;
+    padding-left: 40px;
+  }
+
+  /* ── TERMINAL BLOCK ── */
+  .terminal {
+    background: var(--bg-terminal);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .terminal-bar {
+    background: #252d3d;
+    border-bottom: 1px solid var(--border);
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .t-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .t-red { background: #ff5f56; }
+  .t-yellow { background: #ffbd2e; }
+  .t-green { background: #27c93f; }
+
+  .terminal-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 4px;
+    flex: 1;
+  }
+
+  .copy-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .copy-btn:hover { background: var(--dd-purple); color: white; border-color: var(--dd-purple); }
+  .copy-btn.copied { background: rgba(16,217,140,0.15); color: var(--dd-green); border-color: var(--dd-green); }
+
+  .terminal-body {
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    overflow-x: auto;
+  }
+
+  .t-prompt { color: var(--dd-green); user-select: none; }
+  .t-cmd { color: var(--text-code); }
+  .t-comment { color: #4a5568; font-style: italic; }
+  .t-output { color: #6b7280; }
+  .t-success { color: var(--dd-green); }
+  .t-warn { color: var(--dd-amber); }
+  .t-error { color: var(--dd-red); }
+  .t-highlight { color: var(--dd-cyan); }
+  .t-var { color: #c084fc; }
+
+  /* ── FILE EDITOR ── */
+  .file-editor {
+    background: var(--bg-terminal);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+
+  .file-bar {
+    background: #252d3d;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .file-icon { font-size: 13px; }
+
+  .file-path {
+    font-size: 11.5px;
+    color: var(--dd-amber);
+    font-family: 'JetBrains Mono', monospace;
+    flex: 1;
+  }
+
+  .file-tag {
+    font-size: 9px;
+    background: rgba(245,158,11,0.1);
+    color: var(--dd-amber);
+    border: 1px solid rgba(245,158,11,0.2);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .file-body {
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+
+  .cfg-section { color: #c084fc; font-weight: 700; }
+  .cfg-key { color: var(--dd-cyan); }
+  .cfg-val { color: #a8ff78; }
+  .cfg-comment { color: #3d4d5e; }
+  .cfg-bool-true { color: var(--dd-green); }
+  .cfg-bool-false { color: var(--dd-red); }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch-diagram {
+    background: var(--bg-terminal);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 2;
+    text-align: center;
+    overflow-x: auto;
+  }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 28px 0;
+  }
+
+  .div-line { flex: 1; height: 1px; background: var(--border); }
+  .div-label { font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── CHECKLIST ── */
+  .checklist {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+
+  .checklist-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .check-item:first-of-type { border-top: none; }
+
+  .check-box {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--border-bright);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    transition: all 0.2s;
+  }
+
+  .check-item.checked .check-box {
+    background: var(--dd-green);
+    border-color: var(--dd-green);
+    box-shadow: 0 0 8px rgba(16,217,140,0.3);
+  }
+
+  .check-label {
+    font-size: 13.5px;
+    line-height: 1.5;
+    transition: color 0.2s;
+  }
+
+  .check-item.checked .check-label {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  /* ── ARCHITECTURE OVERVIEW CARDS ── */
+  .arch-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+  }
+
+  .arch-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .arch-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .arch-card.purple::before { background: linear-gradient(90deg, var(--dd-purple), var(--dd-violet)); }
+  .arch-card.green::before { background: linear-gradient(90deg, var(--dd-green), #065f46); }
+  .arch-card.cyan::before { background: linear-gradient(90deg, var(--dd-cyan), #0e7490); }
+  .arch-card.amber::before { background: linear-gradient(90deg, var(--dd-amber), #b45309); }
+  .arch-card.pink::before { background: linear-gradient(90deg, var(--dd-pink), #9d174d); }
+
+  .arch-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+
+  .arch-card-icon { font-size: 24px; margin-bottom: 10px; }
+  .arch-card-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .arch-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── LAB TABS ── */
+  .lab-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 5px;
+  }
+
+  .lab-tab {
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    font-family: 'Syne', sans-serif;
+    white-space: nowrap;
+  }
+
+  .lab-tab:hover { color: var(--text-primary); }
+
+  .lab-tab.active {
+    background: var(--dd-purple);
+    color: white;
+    box-shadow: 0 2px 10px rgba(124,58,237,0.3);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+  /* ── KEY-VALUE TABLE ── */
+  .kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 14px 0;
+  }
+
+  .kv-table th {
+    text-align: left;
+    padding: 9px 14px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    background: var(--bg-terminal);
+    border: 1px solid var(--border);
+  }
+
+  .kv-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+
+  .kv-table tr:nth-child(even) td { background: rgba(241,243,247,0.8); }
+  .kv-table tr:hover td { background: var(--accent-glow); }
+
+  .kv-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--dd-cyan);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .kv-table td:last-child { color: var(--text-secondary); }
+
+  /* ── COMPLETE BUTTON ── */
+  .complete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: transparent;
+    border: 2px solid var(--dd-green);
+    border-radius: 8px;
+    color: var(--dd-green);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Syne', sans-serif;
+    margin-top: 24px;
+  }
+
+  .complete-btn:hover {
+    background: var(--dd-green);
+    color: var(--bg-primary);
+    box-shadow: 0 0 20px rgba(16,217,140,0.25);
+  }
+
+  .complete-btn.completed {
+    background: rgba(16,217,140,0.1);
+    cursor: default;
+  }
+
+  /* ── OVERVIEW LANDING ── */
+  .overview-hero {
+    background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(34,211,238,0.05));
+    border: 1px solid rgba(124,58,237,0.25);
+    border-radius: 14px;
+    padding: 32px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .overview-hero::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%);
+    pointer-events: none;
+  }
+
+  .overview-hero h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  .overview-hero h1 span { 
+    background: linear-gradient(135deg, var(--dd-purple), var(--dd-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .overview-hero p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 560px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .prereq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .prereq-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+  }
+
+  .prereq-icon { font-size: 16px; }
+  .prereq-title { font-weight: 700; margin-bottom: 2px; }
+  .prereq-desc { font-size: 11.5px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* ── PIPELINE DIAGRAM ── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 20px 0;
+    overflow-x: auto;
+    padding: 4px 0;
+  }
+
+  .pipe-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+    flex-shrink: 0;
+    min-width: 110px;
+    transition: border-color 0.2s;
+  }
+
+  .pipe-node:hover { border-color: var(--dd-purple); }
+
+  .pipe-node-icon { font-size: 18px; margin-bottom: 4px; }
+  .pipe-node-label { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+  .pipe-node-sub { font-size: 9.5px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+  .pipe-arrow {
+    color: var(--dd-purple);
+    font-size: 18px;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--dd-purple); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .sidebar { width: 240px; }
+    .main { margin-left: 240px; }
+    .lab-section { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      
+      <div class="logo-text">Datadog Labs</div>
+    </div>
+    <div class="logo-sub">Hands-on Workshop v2.0</div>
+  </div>
+
+  <div class="sidebar-progress">
+    <div class="progress-label">
+      <span>Lab Progress</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Introduction</div>
+    <div class="nav-item active" onclick="showSection('overview')">
+      
+      Workshop Overview
+      <span class="nav-badge" id="badge-overview">Intro</span>
+    </div>
+
+    <div class="nav-section-label">Module 1</div>
+    <div class="nav-item" onclick="showSection('platform')">
+      
+      Platform Overview
+      <span class="nav-badge" id="badge-platform">Lab 1</span>
+    </div>
+    <div class="nav-item nav-sub" onclick="showSection('platform'); switchTab('tab-platform', 'platform-concepts')">└ Core Concepts</div>
+    <div class="nav-item nav-sub" onclick="showSection('platform'); switchTab('tab-platform', 'platform-install')">└ Account Setup</div>
+    <div class="nav-item nav-sub" onclick="showSection('platform'); switchTab('tab-platform', 'platform-explore')">└ UI Exploration</div>
+
+    <div class="nav-section-label">Module 2</div>
+    <div class="nav-item" onclick="showSection('agent')">
+      
+      Unified Agent
+      <span class="nav-badge" id="badge-agent">Lab 2</span>
+    </div>
+    <div class="nav-item nav-sub" onclick="showSection('agent'); switchTab('tab-agent', 'agent-install')">└ Install &amp; Configure</div>
+    <div class="nav-item nav-sub" onclick="showSection('agent'); switchTab('tab-agent', 'agent-integrations')">└ Integrations</div>
+    <div class="nav-item nav-sub" onclick="showSection('agent'); switchTab('tab-agent', 'agent-troubleshoot')">└ Troubleshooting</div>
+
+    <div class="nav-section-label">Module 3</div>
+    <div class="nav-item" onclick="showSection('obshub')">
+      
+      Observability Hub
+      <span class="nav-badge" id="badge-obshub">Lab 3</span>
+    </div>
+    <div class="nav-item nav-sub" onclick="showSection('obshub'); switchTab('tab-obshub', 'obshub-infra')">└ Infrastructure</div>
+    <div class="nav-item nav-sub" onclick="showSection('obshub'); switchTab('tab-obshub', 'obshub-logs')">└ Logs Pipeline</div>
+    <div class="nav-item nav-sub" onclick="showSection('obshub'); switchTab('tab-obshub', 'obshub-apm')">└ APM Traces</div>
+    <div class="nav-item nav-sub" onclick="showSection('obshub'); switchTab('tab-obshub', 'obshub-dashboards')">└ Dashboards</div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="env-badge">
+      <div class="env-dot"></div>
+      <div class="env-info">
+        <div class="env-name">Lab Environment</div>
+        <div class="env-detail">Ubuntu 22.04 LTS · x86_64</div>
+      </div>
+      
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════ MAIN CONTENT ═══════════════════ -->
+<main class="main">
+  <div class="topbar">
+    <div class="topbar-breadcrumb">
+      Workshop / <span id="breadcrumb-text">Overview</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-sm btn-outline" onclick="window.open('https://app.datadoghq.com','_blank')">Open Datadog</button>
+      <button class="btn-sm btn-outline" onclick="window.open('https://docs.datadoghq.com','_blank')">Docs</button>
+    </div>
+  </div>
+
+  <!-- ══════════ OVERVIEW ══════════ -->
+  <div class="lab-section active" id="section-overview">
+    <div class="overview-hero">
+      <div class="module-tag">Hands-On Lab Workshop</div>
+      <h1>Datadog Platform<br><span>Deep Dive</span></h1>
+      <p>A practical, command-line-first workshop covering the Datadog Unified Agent, Platform architecture, and the Observability Hub — performed on a real Linux VM.</p>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="btn-sm btn-primary" onclick="showSection('platform')">Start Lab 1</button>
+        <button class="btn-sm btn-outline" style="color:var(--dd-cyan);border-color:var(--dd-cyan)">Download PDF Guide</button>
+      </div>
+    </div>
+
+    <div class="section-divider"><div class="div-line"></div><div class="div-label">Workshop Structure</div><div class="div-line"></div></div>
+
+    <div class="arch-cards">
+      <div class="arch-card purple" onclick="showSection('platform')" style="cursor:pointer">
+        
+        <div class="arch-card-title">Module 1 — Platform Overview</div>
+        <div class="arch-card-desc">Account setup, product pillars, API keys, regional endpoints, and navigating the UI.</div>
+      </div>
+      <div class="arch-card green" onclick="showSection('agent')" style="cursor:pointer">
+        
+        <div class="arch-card-title">Module 2 — Unified Agent</div>
+        <div class="arch-card-desc">Install, configure, manage, and extend the Datadog Agent on Linux for host metrics and integrations.</div>
+      </div>
+      <div class="arch-card cyan" onclick="showSection('obshub')" style="cursor:pointer">
+        
+        <div class="arch-card-title">Module 3 — Observability Hub</div>
+        <div class="arch-card-desc">Infrastructure, Logs, APM, and Dashboard creation across the full observability stack.</div>
+      </div>
+    </div>
+
+    <div class="section-divider"><div class="div-line"></div><div class="div-label">Prerequisites</div><div class="div-line"></div></div>
+
+    <div class="prereq-grid">
+      <div class="prereq-item"><div><div class="prereq-title">Linux VM</div><div class="prereq-desc">Ubuntu 22.04 / RHEL 8+ / Debian 12</div></div></div>
+      <div class="prereq-item"><div><div class="prereq-title">Internet Access</div><div class="prereq-desc">Outbound HTTPS to datadoghq.com</div></div></div>
+      <div class="prereq-item"><div><div class="prereq-title">Datadog Account</div><div class="prereq-desc">Free trial at app.datadoghq.com</div></div></div>
+      <div class="prereq-item"><div><div class="prereq-title">sudo Privileges</div><div class="prereq-desc">Root or sudoer on the VM</div></div></div>
+      <div class="prereq-item"><div><div class="prereq-title">Docker (Optional)</div><div class="prereq-desc">For container APM labs</div></div></div>
+      <div class="prereq-item"><div><div class="prereq-title">Python 3.8+</div><div class="prereq-desc">For custom check exercises</div></div></div>
+    </div>
+
+    <div class="section-divider"><div class="div-line"></div><div class="div-label">Data Flow Architecture</div><div class="div-line"></div></div>
+
+    <div class="pipeline">
+      <div class="pipe-node"><div class="pipe-node-label">Linux Host</div><div class="pipe-node-sub">Ubuntu / RHEL</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pipe-node-label">DD Agent</div><div class="pipe-node-sub">v7 Unified</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pipe-node-label">Forwarder</div><div class="pipe-node-sub">HTTPS/443</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pipe-node-label">DD Backend</div><div class="pipe-node-sub">US1 / EU / AP</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pipe-node-label">Obs. Hub</div><div class="pipe-node-sub">Metrics+Logs+APM</div></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-node"><div class="pipe-node-label">Alerts</div><div class="pipe-node-sub">PagerDuty / Slack</div></div>
+    </div>
+
+    <div class="info-box info-success">
+      
+      <div><strong>Estimated Duration:</strong> ~3 hours total (45 min × 3 modules + 15 min overview). Labs are self-paced and can be done independently.</div>
+    </div>
+
+    <button class="complete-btn" onclick="markComplete('overview', this)"> Mark Introduction Complete</button>
+  </div>
+
+  <!-- ══════════ MODULE 1: PLATFORM OVERVIEW ══════════ -->
+  <div class="lab-section" id="section-platform">
+    <div class="module-header">
+      <div class="module-num">1</div>
+      <div class="module-meta">
+        <div class="module-tag"> 45 min · Linux CLI + Browser</div>
+        <div class="module-title">Datadog Platform Overview</div>
+        <div class="module-desc">Understand the Datadog product ecosystem, create your account, retrieve API keys, verify connectivity, and navigate the core platform UI before deploying anything.</div>
+        <div class="module-stats">
+          <div class="stat-chip"><div class="dot dot-purple"></div> Account Setup</div>
+          <div class="stat-chip"><div class="dot dot-cyan"></div> API Keys</div>
+          <div class="stat-chip"><div class="dot dot-green"></div> Connectivity Test</div>
+          <div class="stat-chip"><div class="dot dot-amber"></div> UI Navigation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-tabs">
+      <button class="lab-tab active" onclick="switchTab('tab-platform','platform-concepts')"> Core Concepts</button>
+      <button class="lab-tab" onclick="switchTab('tab-platform','platform-install')"> Account Setup</button>
+      <button class="lab-tab" onclick="switchTab('tab-platform','platform-explore')"> UI Exploration</button>
+    </div>
+
+    <!-- TAB: CONCEPTS -->
+    <div class="tab-content active" id="tab-platform-concepts" data-group="tab-platform">
+      <div class="objectives-grid">
+        <div class="obj-card"><div><div class="obj-title">Product Pillars</div><div class="obj-desc">Infrastructure, APM, Logs, RUM, Synthetics, Security</div></div></div>
+        <div class="obj-card"><div><div class="obj-title">Regions</div><div class="obj-desc">US1, US3, US5, EU, AP1 — each with its own endpoints</div></div></div>
+        <div class="obj-card"><div><div class="obj-title">API vs App Keys</div><div class="obj-desc">API keys for data submission, App keys for management</div></div></div>
+        <div class="obj-card"><div><div class="obj-title">Tags & Metadata</div><div class="obj-desc">Key:value pairs used for filtering across all data types</div></div></div>
+      </div>
+
+      <div class="section-divider"><div class="div-line"></div><div class="div-label">Platform Architecture</div><div class="div-line"></div></div>
+
+      <div class="arch-cards">
+        <div class="arch-card purple">
+          
+          <div class="arch-card-title">Infrastructure Monitoring</div>
+          <div class="arch-card-desc">Host, container, and cloud metrics at 15s resolution. Dashboards, host maps, anomaly detection.</div>
+        </div>
+        <div class="arch-card cyan">
+          
+          <div class="arch-card-title">APM & Distributed Tracing</div>
+          <div class="arch-card-desc">Flame graphs, service maps, error tracking, latency percentiles across microservices.</div>
+        </div>
+        <div class="arch-card green">
+          
+          <div class="arch-card-title">Log Management</div>
+          <div class="arch-card-desc">Real-time log ingestion, parsing pipelines, live tail, archive to S3/GCS, rehydration.</div>
+        </div>
+        <div class="arch-card amber">
+          
+          <div class="arch-card-title">Synthetic Monitoring</div>
+          <div class="arch-card-desc">API, browser, and multi-step tests from 30+ global locations with SLO tracking.</div>
+        </div>
+        <div class="arch-card pink">
+          
+          <div class="arch-card-title">Cloud Security</div>
+          <div class="arch-card-desc">CSM, CSPM, Workload Security, and Application Vulnerability Management.</div>
+        </div>
+      </div>
+
+      <div class="section-divider"><div class="div-line"></div><div class="div-label">Key Concepts Reference</div><div class="div-line"></div></div>
+
+      <table class="kv-table">
+        <thead><tr><th>Concept</th><th>Definition</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>DD_API_KEY</td><td>32-char hex key for submitting metrics/logs/traces to Datadog intake</td><td>Used in Agent config, CI pipelines</td></tr>
+          <tr><td>DD_APP_KEY</td><td>40-char hex key for querying the Datadog Management API</td><td>Terraform provider, CLI tooling</td></tr>
+          <tr><td>DD_SITE</td><td>Intake hostname matching your account region</td><td>datadoghq.com (US1) · datadoghq.eu (EU)</td></tr>
+          <tr><td>Tags</td><td>key:value metadata attached to every metric, log, and trace</td><td>env:prod · service:nginx · team:platform</td></tr>
+          <tr><td>Host</td><td>Any machine reporting metrics to Datadog (agent or cloud)</td><td>Billed per unique host/month</td></tr>
+          <tr><td>Integration</td><td>Pre-built tile that collects metrics from a specific technology</td><td>nginx, postgres, redis, aws_ec2</td></tr>
+          <tr><td>Custom Check</td><td>Python script run by the Agent to collect arbitrary metrics</td><td>Business KPIs, internal APIs</td></tr>
+          <tr><td>SLO</td><td>Service Level Objective — target reliability tracked over a window</td><td>99.9% uptime / 30-day rolling window</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB: ACCOUNT SETUP -->
+    <div class="tab-content" id="tab-platform-install" data-group="tab-platform">
+      <div class="info-box info-warning">
+        
+        <div>Before installing the agent, you must have a Datadog account and your <strong>API Key</strong> ready. Follow these steps to get set up.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">Create a Free Datadog Account</div>
+          <span class="step-badge badge-concept">Browser</span>
+        </div>
+        <div class="step-desc">Navigate to <strong>app.datadoghq.com</strong> → Start Free Trial. Choose the <strong>US1</strong> region if unsure. Use your work email for organizational features.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">Datadog Site URLs by Region</div></div>
+          <div class="terminal-body">
+            <span class="t-comment"># Region → Site URL → Intake Endpoint</span><br>
+            <span class="t-highlight">US1</span>   → app.datadoghq.com  → <span class="t-cmd">DD_SITE=datadoghq.com</span><br>
+            <span class="t-highlight">US3</span>   → us3.datadoghq.com  → <span class="t-cmd">DD_SITE=us3.datadoghq.com</span><br>
+            <span class="t-highlight">US5</span>   → us5.datadoghq.com  → <span class="t-cmd">DD_SITE=us5.datadoghq.com</span><br>
+            <span class="t-highlight">EU1</span>   → app.datadoghq.eu   → <span class="t-cmd">DD_SITE=datadoghq.eu</span><br>
+            <span class="t-highlight">AP1</span>   → ap1.datadoghq.com  → <span class="t-cmd">DD_SITE=ap1.datadoghq.com</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">Retrieve Your API Key</div>
+          <span class="step-badge badge-config">Browser</span>
+        </div>
+        <div class="step-desc">In the Datadog UI: <strong>Organization Settings → API Keys → New Key</strong>. Name it <code style="color:var(--dd-cyan)">linux-lab-key</code>. Copy the value — you cannot retrieve it again.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">Store API Key as env variable (temporary)</div><button class="copy-btn" onclick="copyCmd(this, 'export DD_API_KEY=&quot;YOUR_API_KEY_HERE&quot;\nexport DD_SITE=&quot;datadoghq.com&quot;\necho &quot;API Key set: ${DD_API_KEY:0:8}...&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">export DD_API_KEY=</span><span class="t-var">"YOUR_API_KEY_HERE"</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">export DD_SITE=</span><span class="t-var">"datadoghq.com"</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">echo </span><span class="t-var">"API Key set: ${DD_API_KEY:0:8}..."</span><br>
+            <span class="t-output">API Key set: 3f8a92b1...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div class="step-title">Validate API Key Connectivity</div>
+          <span class="step-badge badge-verify">Verify</span>
+        </div>
+        <div class="step-desc">Use <code style="color:var(--dd-cyan)">curl</code> to validate the API key against the Datadog API before installing anything. A <code style="color:var(--dd-green)">200 OK</code> response confirms the key is valid and the network is open.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — validate API key via curl</div><button class="copy-btn" onclick="copyCmd(this, 'curl -X GET &quot;https://api.datadoghq.com/api/v1/validate&quot; \\\n  -H &quot;Accept: application/json&quot; \\\n  -H &quot;DD-API-KEY: ${DD_API_KEY}&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">curl -X GET</span> <span class="t-highlight">"https://api.datadoghq.com/api/v1/validate"</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">-H</span> <span class="t-var">"Accept: application/json"</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">-H</span> <span class="t-var">"DD-API-KEY: ${DD_API_KEY}"</span><br><br>
+            <span class="t-comment"># Expected response:</span><br>
+            <span class="t-success">{"valid":true}</span><br><br>
+            <span class="t-comment"># If invalid:</span><br>
+            <span class="t-error">{"errors":["No API key provided."]}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">4</div>
+          <div class="step-title">Check Outbound Firewall (Port 443)</div>
+          <span class="step-badge badge-verify">Verify</span>
+        </div>
+        <div class="step-desc">The Datadog Agent sends data over HTTPS (port 443). Verify your VM can reach the Datadog intake endpoints.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — connectivity check</div><button class="copy-btn" onclick="copyCmd(this, 'nc -zv intake.agent.datadoghq.com 443\nnc -zv api.datadoghq.com 443\ncurl -sv https://intake.agent.datadoghq.com/ 2>&1 | grep -E &quot;Connected|SSL&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">nc -zv</span> intake.agent.datadoghq.com <span class="t-highlight">443</span><br>
+            <span class="t-success">Connection to intake.agent.datadoghq.com 443 port [tcp/https] succeeded!</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">nc -zv</span> api.datadoghq.com <span class="t-highlight">443</span><br>
+            <span class="t-success">Connection to api.datadoghq.com 443 port [tcp/https] succeeded!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist">
+        <div class="checklist-title">Pre-Installation Checklist</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Datadog account created and logged in</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">API Key generated and copied</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">API key validated via curl (returned valid:true)</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Port 443 outbound connectivity confirmed</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">DD_SITE environment variable set correctly</div></div>
+      </div>
+
+      <button class="complete-btn" onclick="markComplete('platform', this)"> Complete Module 1</button>
+    </div>
+
+    <!-- TAB: UI EXPLORATION -->
+    <div class="tab-content" id="tab-platform-explore" data-group="tab-platform">
+      <div class="info-box info-tip">
+        
+        <div>The Datadog UI is organized around <strong>product pillars</strong> in the left sidebar. Each pillar is independently navigable. Learn the keyboard shortcut <strong>⌘K / Ctrl+K</strong> to open the global search.</div>
+      </div>
+
+      <table class="kv-table">
+        <thead><tr><th>UI Section</th><th>Path</th><th>What to Look For</th></tr></thead>
+        <tbody>
+          <tr><td>Infrastructure → Host Map</td><td>Infrastructure → Host Map</td><td>Hexagonal grid of all reporting hosts, color-coded by metric</td></tr>
+          <tr><td>Metrics Explorer</td><td>Metrics → Explorer</td><td>Search any metric, change aggregation, overlay events</td></tr>
+          <tr><td>Dashboards</td><td>Dashboards → Dashboard List</td><td>Out-of-the-box and custom dashboards; OOTB ones prefixed with [host]</td></tr>
+          <tr><td>APM Service Map</td><td>APM → Service Map</td><td>Auto-discovered service dependency graph with RED metrics</td></tr>
+          <tr><td>Log Explorer</td><td>Logs → Search</td><td>Full-text search, facets, live tail, saved views</td></tr>
+          <tr><td>Monitors</td><td>Monitors → Manage</td><td>All alerting rules; group by status: OK / ALERT / WARN</td></tr>
+          <tr><td>Integrations</td><td>Integrations → Integrations</td><td>850+ pre-built tiles; filter by "Installed" to see active ones</td></tr>
+          <tr><td>Agent Installation</td><td>Integrations → Agent</td><td>OS-specific one-liner install commands with pre-filled API key</td></tr>
+        </tbody>
+      </table>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">Explore Infrastructure → Host Map</div>
+          <span class="step-badge badge-concept">Browser Task</span>
+        </div>
+        <div class="step-desc">After the Agent is installed (Module 2), your Linux host will appear here within ~2 minutes. Hover over a hexagon to see all reported metrics. Click to open the host details pane with processes, metrics, and logs.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">Open Metrics Explorer and Query system.cpu.user</div>
+          <span class="step-badge badge-concept">Browser Task</span>
+        </div>
+        <div class="step-desc">Navigate to <strong>Metrics → Explorer</strong>. In the search box type <code style="color:var(--dd-cyan)">system.cpu.user</code>. Add a <code style="color:var(--dd-cyan)">From:</code> filter of <code style="color:var(--dd-green)">host:&lt;your-hostname&gt;</code>. Observe the real-time timeseries.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MODULE 2: UNIFIED AGENT ══════════ -->
+  <div class="lab-section" id="section-agent">
+    <div class="module-header">
+      <div class="module-num">2</div>
+      <div class="module-meta">
+        <div class="module-tag"> 60 min · Linux CLI</div>
+        <div class="module-title">Datadog Unified Agent</div>
+        <div class="module-desc">Install, configure, and operate the Datadog Agent v7 on Linux. Explore the Agent's service lifecycle, configuration system, integrations, and write a custom Python check.</div>
+        <div class="module-stats">
+          <div class="stat-chip"><div class="dot dot-green"></div> APT/YUM Install</div>
+          <div class="stat-chip"><div class="dot dot-cyan"></div> YAML Config</div>
+          <div class="stat-chip"><div class="dot dot-purple"></div> Custom Check</div>
+          <div class="stat-chip"><div class="dot dot-amber"></div> Agent CLI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-tabs">
+      <button class="lab-tab active" onclick="switchTab('tab-agent','agent-install')"> Install &amp; Configure</button>
+      <button class="lab-tab" onclick="switchTab('tab-agent','agent-integrations')"> Integrations</button>
+      <button class="lab-tab" onclick="switchTab('tab-agent','agent-troubleshoot')"> Troubleshoot</button>
+    </div>
+
+    <!-- TAB: INSTALL -->
+    <div class="tab-content active" id="tab-agent-install" data-group="tab-agent">
+
+      <div class="info-box info-note">
+        
+        <div>The <strong>Unified Agent</strong> (v7+) is a single binary that collects metrics, logs, traces, processes, network performance, and security events. It replaces multiple legacy agents from earlier Datadog versions.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">1</div>
+          <div class="step-title">One-Line Install (Recommended)</div>
+          <span class="step-badge badge-cmd">Command</span>
+        </div>
+        <div class="step-desc">This script auto-detects your OS (Debian/Ubuntu, RHEL/CentOS, Amazon Linux, SUSE) and installs the latest Agent v7. Replace <code style="color:var(--dd-cyan)">YOUR_API_KEY</code> with your actual key.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — one-line Agent install</div><button class="copy-btn" onclick="copyCmd(this, 'DD_API_KEY=YOUR_API_KEY DD_SITE=datadoghq.com bash -c &quot;$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">DD_API_KEY=</span><span class="t-var">YOUR_API_KEY</span> <span class="t-cmd">DD_SITE=</span><span class="t-var">datadoghq.com</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">bash -c</span> <span class="t-highlight">"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"</span><br><br>
+            <span class="t-comment"># The script will:</span><br>
+            <span class="t-comment"># 1. Add the Datadog APT/YUM repository</span><br>
+            <span class="t-comment"># 2. Import GPG signing key</span><br>
+            <span class="t-comment"># 3. Install datadog-agent package</span><br>
+            <span class="t-comment"># 4. Write /etc/datadog-agent/datadog.yaml</span><br>
+            <span class="t-comment"># 5. Enable &amp; start the systemd service</span><br><br>
+            <span class="t-success">  Your Agent is running and functioning properly.</span><br>
+            <span class="t-success">  It will continue to run in the background.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">2</div>
+          <div class="step-title">Manual Install (Debian/Ubuntu)</div>
+          <span class="step-badge badge-cmd">Alternative</span>
+        </div>
+        <div class="step-desc">If the one-liner is blocked, install manually by adding the Datadog repository and using apt.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — manual Debian/Ubuntu install</div><button class="copy-btn" onclick="copyCmd(this, 'sudo apt-get install -y apt-transport-https curl gnupg\nsudo sh -c &quot;echo \'deb [signed-by=/usr/share/keyrings/datadog-archive-keyring.gpg] https://apt.datadoghq.com/ stable 7\' > /etc/apt/sources.list.d/datadog.list&quot;\nsudo touch /usr/share/keyrings/datadog-archive-keyring.gpg\ncurl https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public | sudo gpg --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg --import\nsudo apt-get update\nsudo apt-get install -y datadog-agent')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo apt-get install -y</span> apt-transport-https curl gnupg<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo sh -c</span> <span class="t-var">"echo 'deb [signed-by=/usr/share/keyrings/datadog-archive-keyring.gpg] \<br>&nbsp;&nbsp;https://apt.datadoghq.com/ stable 7' > /etc/apt/sources.list.d/datadog.list"</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo touch</span> /usr/share/keyrings/datadog-archive-keyring.gpg<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">curl</span> https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public \<br>
+            &nbsp;&nbsp;| <span class="t-cmd">sudo gpg</span> --no-default-keyring \<br>
+            &nbsp;&nbsp;--keyring /usr/share/keyrings/datadog-archive-keyring.gpg --import<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo apt-get update</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo apt-get install -y</span> datadog-agent
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">3</div>
+          <div class="step-title">Verify Service Status</div>
+          <span class="step-badge badge-verify">Verify</span>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — check agent service</div><button class="copy-btn" onclick="copyCmd(this, 'sudo systemctl status datadog-agent\nsudo datadog-agent status\nsudo datadog-agent health')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo systemctl status</span> datadog-agent<br>
+            <span class="t-success">● datadog-agent.service - Datadog Agent</span><br>
+            &nbsp;&nbsp;&nbsp;<span class="t-output">Loaded: loaded (/lib/systemd/system/datadog-agent.service)</span><br>
+            &nbsp;&nbsp;&nbsp;<span class="t-success">Active: active (running) since Mon 2026-05-11 10:32:15 UTC</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent status</span><br>
+            <span class="t-highlight">===============================</span><br>
+            <span class="t-highlight">  Collector (Metrics Collection)</span><br>
+            <span class="t-highlight">===============================</span><br>
+            <span class="t-success">  Checks: cpu, disk, io, load, memory, network, ntp, uptime</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent health</span><br>
+            <span class="t-success">Agent health: PASS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">4</div>
+          <div class="step-title">Explore the Main Configuration File</div>
+          <span class="step-badge badge-config">Config</span>
+        </div>
+        <div class="step-desc">The Agent's primary config lives at <code style="color:var(--dd-amber)">/etc/datadog-agent/datadog.yaml</code>. Edit it to enable features like log collection and process monitoring.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — view config file</div><button class="copy-btn" onclick="copyCmd(this, 'sudo cat /etc/datadog-agent/datadog.yaml | grep -v &quot;^#&quot; | grep -v &quot;^$&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo cat</span> /etc/datadog-agent/datadog.yaml | <span class="t-cmd">grep -v</span> <span class="t-var">"^#"</span> | <span class="t-cmd">grep -v</span> <span class="t-var">"^$"</span>
+          </div>
+        </div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/datadog.yaml</div><div class="file-tag">YAML Config</div><button class="copy-btn" onclick="copyCmd(this, 'api_key: YOUR_DD_API_KEY\nsite: datadoghq.com\nhostname: my-linux-lab\ntags:\n  - env:lab\n  - team:platform\n  - workshop:datadog\nlogs_enabled: true\nprocess_config:\n  process_collection:\n    enabled: true\napm_config:\n  enabled: true\n  apm_non_local_traffic: false')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-key">api_key</span>: <span class="cfg-val">YOUR_DD_API_KEY</span><br>
+            <span class="cfg-key">site</span>: <span class="cfg-val">datadoghq.com</span><br>
+            <span class="cfg-key">hostname</span>: <span class="cfg-val">my-linux-lab</span><br>
+            <span class="cfg-key">tags</span>:<br>
+            &nbsp;&nbsp;- <span class="cfg-val">env:lab</span><br>
+            &nbsp;&nbsp;- <span class="cfg-val">team:platform</span><br>
+            &nbsp;&nbsp;- <span class="cfg-val">workshop:datadog</span><br><br>
+            <span class="cfg-comment"># Enable log collection</span><br>
+            <span class="cfg-key">logs_enabled</span>: <span class="cfg-bool-true">true</span><br><br>
+            <span class="cfg-comment"># Enable process collection</span><br>
+            <span class="cfg-section">process_config</span>:<br>
+            &nbsp;&nbsp;<span class="cfg-key">process_collection</span>:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">enabled</span>: <span class="cfg-bool-true">true</span><br><br>
+            <span class="cfg-comment"># Enable APM tracing</span><br>
+            <span class="cfg-section">apm_config</span>:<br>
+            &nbsp;&nbsp;<span class="cfg-key">enabled</span>: <span class="cfg-bool-true">true</span><br>
+            &nbsp;&nbsp;<span class="cfg-key">apm_non_local_traffic</span>: <span class="cfg-bool-false">false</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">5</div>
+          <div class="step-title">Agent Directory Structure</div>
+          <span class="step-badge badge-concept">Reference</span>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — explore agent directories</div><button class="copy-btn" onclick="copyCmd(this, 'ls /etc/datadog-agent/\nls /etc/datadog-agent/conf.d/\nls /var/log/datadog/')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">ls</span> /etc/datadog-agent/<br>
+            <span class="t-highlight">datadog.yaml</span>&nbsp;&nbsp;&nbsp;<span class="t-output">conf.d/</span>&nbsp;&nbsp;&nbsp;<span class="t-output">checks.d/</span>&nbsp;&nbsp;&nbsp;<span class="t-output">runtime-security.d/</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">ls</span> /etc/datadog-agent/conf.d/<br>
+            <span class="t-output">cpu.d/  disk.d/  docker.d/  elasticsearch.d/</span><br>
+            <span class="t-output">go_expvar.d/  http_check.d/  kafka.d/  nginx.d/</span><br>
+            <span class="t-output">postgres.d/  process.d/  redis.d/  tcp_check.d/ ...</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">ls</span> /var/log/datadog/<br>
+            <span class="t-output">agent.log  trace-agent.log  process-agent.log</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header">
+          <div class="step-num">6</div>
+          <div class="step-title">Write a Custom Python Check</div>
+          <span class="step-badge badge-cmd">Lab Exercise</span>
+        </div>
+        <div class="step-desc">Custom checks let you send arbitrary business metrics. Create a check that reports a simulated "active_users" gauge metric.</div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/checks.d/active_users.py</div><div class="file-tag">Python</div><button class="copy-btn" onclick="copyCmd(this, 'from datadog_checks.base import AgentCheck\nimport random\n\nclass ActiveUsersCheck(AgentCheck):\n    def check(self, instance):\n        # Simulate reading from a real data source\n        active_users = random.randint(100, 500)\n        self.gauge(\n            &quot;app.active_users&quot;,\n            active_users,\n            tags=[&quot;env:lab&quot;, &quot;service:myapp&quot;]\n        )\n        self.log.debug(f&quot;Reported active_users={active_users}&quot;)')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-comment">from datadog_checks.base import AgentCheck</span><br>
+            <span class="cfg-comment">import random</span><br><br>
+            <span class="cfg-section">class ActiveUsersCheck(AgentCheck):</span><br>
+            &nbsp;&nbsp;<span class="cfg-key">def check(self, instance):</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-comment"># Simulate reading from a real data source</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-output">active_users = random.randint(100, 500)</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">self.gauge(</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-val">"app.active_users"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-output">active_users,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">tags=[</span><span class="cfg-val">"env:lab"</span>, <span class="cfg-val">"service:myapp"</span><span class="cfg-key">]</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">)</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-output">self.log.debug(f"Reported active_users={active_users}")</span>
+          </div>
+        </div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/conf.d/active_users.d/conf.yaml</div><div class="file-tag">YAML</div><button class="copy-btn" onclick="copyCmd(this, 'init_config:\n\ninstances:\n  - {}')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-key">init_config</span>:<br><br>
+            <span class="cfg-key">instances</span>:<br>
+            &nbsp;&nbsp;- {}
+          </div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — test and restart</div><button class="copy-btn" onclick="copyCmd(this, 'sudo -u dd-agent datadog-agent check active_users\nsudo systemctl restart datadog-agent')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo -u dd-agent datadog-agent check</span> active_users<br>
+            <span class="t-highlight">=== Series ===</span><br>
+            <span class="t-success">[{"metric":"app.active_users","points":[[1746957600,342.0]],"tags":["env:lab","service:myapp"],"type":"gauge"}]</span><br>
+            <span class="t-output">=========</span><br>
+            <span class="t-success">Collector Status: Check active_users 0 instances</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo systemctl restart</span> datadog-agent
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist">
+        <div class="checklist-title">Agent Installation Checklist</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Agent installed via one-liner or apt/yum</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">systemctl status shows active (running)</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">datadog-agent health returns PASS</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Host appears in Datadog Infrastructure → Host Map</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Tags visible in UI (env:lab, team:platform)</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Custom check app.active_users reporting</div></div>
+      </div>
+    </div>
+
+    <!-- TAB: INTEGRATIONS -->
+    <div class="tab-content" id="tab-agent-integrations" data-group="tab-agent">
+      <div class="info-box info-tip">
+        
+        <div>Integration configs live in <code style="color:var(--dd-amber)">/etc/datadog-agent/conf.d/&lt;integration&gt;.d/conf.yaml</code>. Copy the example file and fill in your connection details.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Enable NGINX Integration</div><span class="step-badge badge-cmd">Command</span></div>
+        <div class="step-desc">Install nginx on the lab VM, enable the stub_status module, then configure the Datadog integration.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — install and configure nginx</div><button class="copy-btn" onclick="copyCmd(this, 'sudo apt-get install -y nginx\nsudo tee /etc/nginx/conf.d/status.conf <<EOF\nserver {\n  listen 81;\n  location /nginx_status {\n    stub_status;\n    allow 127.0.0.1;\n    deny all;\n  }\n}\nEOF\nsudo systemctl restart nginx\ncurl http://127.0.0.1:81/nginx_status')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo apt-get install -y</span> nginx<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo tee</span> /etc/nginx/conf.d/status.conf <span class="t-highlight">&lt;&lt;EOF</span><br>
+            <span class="t-output">server {</span><br>
+            <span class="t-output">&nbsp;&nbsp;listen 81;</span><br>
+            <span class="t-output">&nbsp;&nbsp;location /nginx_status {</span><br>
+            <span class="t-output">&nbsp;&nbsp;&nbsp;&nbsp;stub_status; allow 127.0.0.1; deny all;</span><br>
+            <span class="t-output">&nbsp;&nbsp;}</span><br>
+            <span class="t-output">}</span><br>
+            <span class="t-highlight">EOF</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo systemctl restart</span> nginx<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">curl</span> http://127.0.0.1:81/nginx_status<br>
+            <span class="t-success">Active connections: 1</span><br>
+            <span class="t-success">server accepts handled requests</span><br>
+            <span class="t-success"> 1 1 1</span>
+          </div>
+        </div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/conf.d/nginx.d/conf.yaml</div><div class="file-tag">YAML</div><button class="copy-btn" onclick="copyCmd(this, 'init_config:\n\ninstances:\n  - nginx_status_url: http://localhost:81/nginx_status\n    tags:\n      - service:nginx\n      - env:lab')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-key">init_config</span>:<br><br>
+            <span class="cfg-key">instances</span>:<br>
+            &nbsp;&nbsp;- <span class="cfg-key">nginx_status_url</span>: <span class="cfg-val">http://localhost:81/nginx_status</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">tags</span>:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="cfg-val">service:nginx</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="cfg-val">env:lab</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Enable System Log Collection</div><span class="step-badge badge-config">Config</span></div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/conf.d/linux_proc_extras.d/conf.yaml</div><div class="file-tag">YAML</div></div>
+          <div class="file-body">
+            <span class="cfg-key">logs</span>:<br>
+            &nbsp;&nbsp;- <span class="cfg-key">type</span>: <span class="cfg-val">file</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">path</span>: <span class="cfg-val">/var/log/syslog</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">service</span>: <span class="cfg-val">linux-system</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">source</span>: <span class="cfg-val">syslog</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">tags</span>:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="cfg-val">env:lab</span><br>
+            &nbsp;&nbsp;- <span class="cfg-key">type</span>: <span class="cfg-val">file</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">path</span>: <span class="cfg-val">/var/log/auth.log</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">service</span>: <span class="cfg-val">linux-auth</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">source</span>: <span class="cfg-val">linux-auth</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">3</div><div class="step-title">Verify All Checks Running</div><span class="step-badge badge-verify">Verify</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — verify checks</div><button class="copy-btn" onclick="copyCmd(this, 'sudo datadog-agent check nginx\nsudo datadog-agent status | grep -A5 &quot;Checks&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent check</span> nginx<br>
+            <span class="t-success">nginx.net.connections: 1</span><br>
+            <span class="t-success">nginx.net.request_per_s: 0.5</span><br>
+            <span class="t-success">nginx.net.waiting: 0</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent status</span> | <span class="t-cmd">grep -A5</span> <span class="t-var">"Checks"</span><br>
+            <span class="t-highlight">Running Checks</span><br>
+            <span class="t-success">  active_users (1.0.0)</span><br>
+            <span class="t-success">  cpu (0.0.1)</span><br>
+            <span class="t-success">  disk (0.0.0)</span><br>
+            <span class="t-success">  nginx (1.13.0)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: TROUBLESHOOT -->
+    <div class="tab-content" id="tab-agent-troubleshoot" data-group="tab-agent">
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Common Agent Commands Reference</div><span class="step-badge badge-concept">Reference</span></div>
+        <table class="kv-table">
+          <thead><tr><th>Command</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>datadog-agent status</td><td>Full agent status including all running checks and their metrics</td></tr>
+            <tr><td>datadog-agent health</td><td>Quick PASS/FAIL health summary</td></tr>
+            <tr><td>datadog-agent check &lt;name&gt;</td><td>Run a single check and print output without sending to Datadog</td></tr>
+            <tr><td>datadog-agent flare</td><td>Generate a diagnostic bundle to send to Datadog Support</td></tr>
+            <tr><td>datadog-agent configcheck</td><td>Validate all YAML configs for syntax errors</td></tr>
+            <tr><td>datadog-agent diagnose</td><td>Run automated diagnostics against Datadog endpoints</td></tr>
+            <tr><td>datadog-agent version</td><td>Print the installed agent version</td></tr>
+            <tr><td>datadog-agent hostname</td><td>Print the resolved hostname the agent uses</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Diagnose Connectivity Issues</div><span class="step-badge badge-verify">Diagnose</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — run diagnostics</div><button class="copy-btn" onclick="copyCmd(this, 'sudo datadog-agent diagnose\nsudo datadog-agent configcheck\nsudo journalctl -u datadog-agent -n 50 --no-pager\ntail -50 /var/log/datadog/agent.log')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent diagnose</span><br>
+            <span class="t-highlight">PASS - connectivity to datadoghq.com</span><br>
+            <span class="t-highlight">PASS - connectivity to logs.datadoghq.com</span><br>
+            <span class="t-highlight">PASS - NTP offset</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent configcheck</span><br>
+            <span class="t-success">=== nginx check ===</span><br>
+            <span class="t-success">Source: file</span><br>
+            <span class="t-success">Instance ID: nginx:1234567890</span><br>
+            <span class="t-warn">No errors found. Good to go!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-box info-danger">
+        
+        <div><strong>Common Issue:</strong> If the Agent reports HOSTNAME_MISMATCH, check that <code style="color:var(--dd-cyan)">hostname</code> in <code>datadog.yaml</code> matches the EC2/GCP instance name, or remove the override to let the Agent auto-detect it.</div>
+      </div>
+
+      <button class="complete-btn" onclick="markComplete('agent', this)"> Complete Module 2</button>
+    </div>
+  </div>
+
+  <!-- ══════════ MODULE 3: OBSERVABILITY HUB ══════════ -->
+  <div class="lab-section" id="section-obshub">
+    <div class="module-header">
+      <div class="module-num">3</div>
+      <div class="module-meta">
+        <div class="module-tag"> 75 min · Linux CLI + Browser</div>
+        <div class="module-title">Observability Hub</div>
+        <div class="module-desc">Put the full Datadog Observability stack into practice. Explore Infrastructure metrics, set up the Logs pipeline with parsing, instrument an app for APM, and build a unified dashboard.</div>
+        <div class="module-stats">
+          <div class="stat-chip"><div class="dot dot-green"></div> Infrastructure</div>
+          <div class="stat-chip"><div class="dot dot-cyan"></div> Logs + Parsing</div>
+          <div class="stat-chip"><div class="dot dot-purple"></div> APM Traces</div>
+          <div class="stat-chip"><div class="dot dot-amber"></div> Dashboards</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-tabs">
+      <button class="lab-tab active" onclick="switchTab('tab-obshub','obshub-infra')"> Infrastructure</button>
+      <button class="lab-tab" onclick="switchTab('tab-obshub','obshub-logs')"> Logs Pipeline</button>
+      <button class="lab-tab" onclick="switchTab('tab-obshub','obshub-apm')"> APM Traces</button>
+      <button class="lab-tab" onclick="switchTab('tab-obshub','obshub-dashboards')"> Dashboards</button>
+    </div>
+
+    <!-- TAB: INFRASTRUCTURE -->
+    <div class="tab-content active" id="tab-obshub-infra" data-group="tab-obshub">
+      <div class="info-box info-note">
+        
+        <div>Infrastructure monitoring gives you full-stack visibility with <strong>600+ OOTB metrics</strong> from the moment the Agent starts. These exercises explore, query, and alert on those metrics.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Generate CPU Load for Visualization</div><span class="step-badge badge-cmd">Lab Exercise</span></div>
+        <div class="step-desc">Use <code style="color:var(--dd-cyan)">stress-ng</code> to generate synthetic CPU/Memory load and watch it appear in real-time in the Datadog Metrics Explorer.</div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — generate load</div><button class="copy-btn" onclick="copyCmd(this, 'sudo apt-get install -y stress-ng\n# Generate 2 CPU workers for 60 seconds\nstress-ng --cpu 2 --timeout 60s &\n# Generate memory pressure\nstress-ng --vm 1 --vm-bytes 512M --timeout 60s &\n# Watch metrics in another terminal\nwatch -n2 datadog-agent status | grep cpu')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo apt-get install -y</span> stress-ng<br>
+            <span class="t-prompt">$ </span><span class="t-comment"># Generate 2 CPU workers for 60 seconds</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">stress-ng --cpu 2 --timeout 60s</span> &<br>
+            <span class="t-output">[1] 12345</span><br>
+            <span class="t-output">stress-ng: info: [12345] defaulting to a 60 second run per stressor</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-comment"># In Datadog: Metrics → Explorer → system.cpu.user</span><br>
+            <span class="t-comment"># You should see a spike within 15-30 seconds</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Create a CPU High Monitor (Alert)</div><span class="step-badge badge-config">Browser Task</span></div>
+        <div class="step-desc">Navigate to <strong>Monitors → New Monitor → Threshold Alert</strong>. Configure an alert that fires when CPU usage exceeds 80% for 5 minutes.</div>
+        <table class="kv-table">
+          <thead><tr><th>Monitor Field</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Monitor Type</td><td>Metric Monitor</td></tr>
+            <tr><td>Metric</td><td>system.cpu.user</td></tr>
+            <tr><td>From (scope)</td><td>host:my-linux-lab</td></tr>
+            <tr><td>Alert threshold</td><td>&gt; 80</td></tr>
+            <tr><td>Warning threshold</td><td>&gt; 60</td></tr>
+            <tr><td>Evaluation window</td><td>last 5 minutes</td></tr>
+            <tr><td>Notification message</td><td>CPU high on {{host.name}}: {{value}}%</td></tr>
+            <tr><td>Tags</td><td>env:lab, team:platform</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">3</div><div class="step-title">Query Key System Metrics via CLI</div><span class="step-badge badge-cmd">Command</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — key system metrics</div><button class="copy-btn" onclick="copyCmd(this, '# Check current load average\nuptime\n# Check memory\nfree -h\n# Check disk I/O\niostat -x 1 3\n# Check network throughput\nsar -n DEV 1 3\n# View what the Agent is collecting\nsudo datadog-agent status | grep -A2 \"system\"')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">uptime</span><br>
+            <span class="t-output"> 10:42:15 up 2 days, 3:22, 1 user, load average: <span class="t-warn">1.84, 0.95, 0.41</span></span><br><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">free -h</span><br>
+            <span class="t-output">              total  used   free   shared  buff/cache  available</span><br>
+            <span class="t-success">Mem:           7.7G   2.1G   3.2G    234M      2.3G         5.1G</span><br><br>
+            <span class="t-prompt">$ </span><span class="t-comment"># All these values stream to Datadog as metrics</span><br>
+            <span class="t-comment"># system.load.1, system.mem.used, system.io.await</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: LOGS -->
+    <div class="tab-content" id="tab-obshub-logs" data-group="tab-obshub">
+      <div class="info-box info-note">
+        
+        <div>Datadog Logs supports <strong>JSON auto-parsing</strong>, grok-based custom parsers, remappers, and enrichment pipelines. This section sets up log collection from nginx and syslog with parsing.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Configure Nginx Log Collection</div><span class="step-badge badge-config">Config</span></div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">/etc/datadog-agent/conf.d/nginx.d/conf.yaml</div><div class="file-tag">Update</div><button class="copy-btn" onclick="copyCmd(this, 'init_config:\n\ninstances:\n  - nginx_status_url: http://localhost:81/nginx_status\n\nlogs:\n  - type: file\n    path: /var/log/nginx/access.log\n    service: nginx\n    source: nginx\n    sourcecategory: http_web_access\n    tags:\n      - env:lab\n  - type: file\n    path: /var/log/nginx/error.log\n    service: nginx\n    source: nginx\n    log_processing_rules:\n      - type: multi_line\n        name: new_log_start_with_date\n        pattern: \\d{4}\\/\\d{2}\\/\\d{2}')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-key">init_config</span>:<br><br>
+            <span class="cfg-key">instances</span>:<br>
+            &nbsp;&nbsp;- <span class="cfg-key">nginx_status_url</span>: <span class="cfg-val">http://localhost:81/nginx_status</span><br><br>
+            <span class="cfg-key">logs</span>:<br>
+            &nbsp;&nbsp;- <span class="cfg-key">type</span>: <span class="cfg-val">file</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">path</span>: <span class="cfg-val">/var/log/nginx/access.log</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">service</span>: <span class="cfg-val">nginx</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">source</span>: <span class="cfg-val">nginx</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">sourcecategory</span>: <span class="cfg-val">http_web_access</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="cfg-key">tags</span>:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- <span class="cfg-val">env:lab</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Generate Log Traffic</div><span class="step-badge badge-cmd">Command</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — generate nginx traffic</div><button class="copy-btn" onclick="copyCmd(this, 'for i in {1..50}; do curl -s http://localhost/ > /dev/null; done\ncurl http://localhost/nonexistent  # Generate a 404\ncurl http://localhost/nginx_status  # Status check\ntail -20 /var/log/nginx/access.log')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">for</span> i <span class="t-cmd">in</span> {1..50}; <span class="t-cmd">do</span> curl -s http://localhost/ > /dev/null; <span class="t-cmd">done</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">curl</span> http://localhost/nonexistent <span class="t-comment"># Generate a 404</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">tail -20</span> /var/log/nginx/access.log<br>
+            <span class="t-output">127.0.0.1 - - [11/May/2026:10:44:01 +0000] "GET / HTTP/1.1" <span class="t-success">200</span> 612</span><br>
+            <span class="t-output">127.0.0.1 - - [11/May/2026:10:44:01 +0000] "GET /nonexistent HTTP/1.1" <span class="t-error">404</span> 153</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">3</div><div class="step-title">Create a Log Pipeline in UI</div><span class="step-badge badge-concept">Browser Task</span></div>
+        <div class="step-desc">In Datadog, navigate to <strong>Logs → Configuration → Pipelines → Add Pipeline</strong>. Create a pipeline to extract nginx status codes as a numeric attribute.</div>
+        <table class="kv-table">
+          <thead><tr><th>Pipeline Setting</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td>Filter</td><td>source:nginx</td></tr>
+            <tr><td>Processor 1 Type</td><td>Grok Parser</td></tr>
+            <tr><td>Grok Rule Name</td><td>nginx_access_log</td></tr>
+            <tr><td>Grok Pattern</td><td>%{IPORHOST:network.client.ip} - - \[%{HTTPDATE:date}\] "%{WORD:http.method} %{NOTSPACE:http.url} HTTP/%{NUMBER:http.version}" %{NUMBER:http.status_code:integer} %{NUMBER:network.bytes_written:integer}</td></tr>
+            <tr><td>Processor 2 Type</td><td>Status Remapper</td></tr>
+            <tr><td>Status attribute</td><td>http.status_code</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: APM -->
+    <div class="tab-content" id="tab-obshub-apm" data-group="tab-obshub">
+      <div class="info-box info-note">
+        
+        <div>APM (Application Performance Monitoring) captures distributed traces with <strong>flame graphs</strong>, service maps, and per-endpoint latency/error stats. This lab instruments a Python Flask app.</div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Enable APM in Agent Config</div><span class="step-badge badge-config">Config</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — enable apm</div><button class="copy-btn" onclick="copyCmd(this, 'sudo sed -i &quot;s/# apm_config:/apm_config:/&quot; /etc/datadog-agent/datadog.yaml\nsudo sed -i &quot;s/#   enabled: false/  enabled: true/&quot; /etc/datadog-agent/datadog.yaml\nsudo systemctl restart datadog-agent\nsudo datadog-agent status | grep -A5 &quot;APM Agent&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo sed -i</span> <span class="t-var">'s/# apm_config:/apm_config:/'</span> /etc/datadog-agent/datadog.yaml<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo systemctl restart</span> datadog-agent<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">sudo datadog-agent status</span> | <span class="t-cmd">grep -A5</span> <span class="t-var">"APM Agent"</span><br>
+            <span class="t-highlight">APM Agent</span><br>
+            <span class="t-success">  Status: Running</span><br>
+            <span class="t-success">  Pid: 12346</span><br>
+            <span class="t-success">  Listening on: localhost:8126</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Install ddtrace and Create Flask App</div><span class="step-badge badge-cmd">Command</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — install ddtrace</div><button class="copy-btn" onclick="copyCmd(this, 'pip3 install ddtrace flask\nmkdir -p ~/lab-app && cd ~/lab-app')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">pip3 install</span> ddtrace flask<br>
+            <span class="t-success">Successfully installed ddtrace-2.x.x flask-3.x.x</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">mkdir -p</span> ~/lab-app && <span class="t-cmd">cd</span> ~/lab-app
+          </div>
+        </div>
+        <div class="file-editor">
+          <div class="file-bar"><div class="file-icon"></div><div class="file-path">~/lab-app/app.py</div><div class="file-tag">Python Flask</div><button class="copy-btn" onclick="copyCmd(this, 'from flask import Flask, jsonify\nimport time, random\n\napp = Flask(__name__)\n\n@app.route(&quot;/api/users&quot;)\ndef get_users():\n    # Simulate variable latency\n    time.sleep(random.uniform(0.01, 0.2))\n    return jsonify({&quot;users&quot;: 42, &quot;status&quot;: &quot;ok&quot;})\n\n@app.route(&quot;/api/orders&quot;)\ndef get_orders():\n    time.sleep(random.uniform(0.05, 0.5))\n    if random.random() < 0.1:\n        raise Exception(&quot;Database timeout!&quot;)\n    return jsonify({&quot;orders&quot;: 128, &quot;status&quot;: &quot;ok&quot;})\n\n@app.route(&quot;/health&quot;)\ndef health():\n    return jsonify({&quot;healthy&quot;: True})\n\nif __name__ == &quot;__main__&quot;:\n    app.run(host=&quot;0.0.0.0&quot;, port=5000)')">Copy</button></div>
+          <div class="file-body">
+            <span class="cfg-comment">from flask import Flask, jsonify</span><br>
+            <span class="cfg-comment">import time, random</span><br><br>
+            <span class="cfg-key">app = Flask(__name__)</span><br><br>
+            <span class="cfg-section">@app.route("/api/users")</span><br>
+            <span class="cfg-key">def get_users():</span><br>
+            &nbsp;&nbsp;<span class="cfg-comment"># Simulate variable latency</span><br>
+            &nbsp;&nbsp;<span class="t-output">time.sleep(random.uniform(0.01, 0.2))</span><br>
+            &nbsp;&nbsp;<span class="t-output">return jsonify({"users": 42, "status": "ok"})</span><br><br>
+            <span class="cfg-section">@app.route("/api/orders")</span><br>
+            <span class="cfg-key">def get_orders():</span><br>
+            &nbsp;&nbsp;<span class="t-output">time.sleep(random.uniform(0.05, 0.5))</span><br>
+            &nbsp;&nbsp;<span class="t-output">if random.random() &lt; 0.1:</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="t-error">raise Exception("Database timeout!")</span><br>
+            &nbsp;&nbsp;<span class="t-output">return jsonify({"orders": 128, "status": "ok"})</span>
+          </div>
+        </div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — run with APM instrumentation</div><button class="copy-btn" onclick="copyCmd(this, 'DD_SERVICE=lab-flask-app DD_ENV=lab DD_VERSION=1.0 \\\n  ddtrace-run python3 app.py &\n\n# Generate traffic\nfor i in {1..100}; do\n  curl -s http://localhost:5000/api/users > /dev/null\n  curl -s http://localhost:5000/api/orders > /dev/null\n  sleep 0.5\ndone')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-cmd">DD_SERVICE=</span><span class="t-var">lab-flask-app</span> <span class="t-cmd">DD_ENV=</span><span class="t-var">lab</span> <span class="t-cmd">DD_VERSION=</span><span class="t-var">1.0</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">ddtrace-run python3</span> app.py &<br><br>
+            <span class="t-prompt">$ </span><span class="t-comment"># Generate 100 requests to each endpoint</span><br>
+            <span class="t-prompt">$ </span><span class="t-cmd">for</span> i <span class="t-cmd">in</span> {1..100}; <span class="t-cmd">do</span><br>
+            &nbsp;&nbsp;<span class="t-cmd">curl -s</span> http://localhost:5000/api/users > /dev/null<br>
+            &nbsp;&nbsp;<span class="t-cmd">curl -s</span> http://localhost:5000/api/orders > /dev/null<br>
+            &nbsp;&nbsp;<span class="t-cmd">sleep</span> 0.5<br>
+            <span class="t-cmd">done</span><br><br>
+            <span class="t-comment"># In Datadog: APM → Services → lab-flask-app</span><br>
+            <span class="t-success"># You will see traces, flame graphs &amp; error rates</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: DASHBOARDS -->
+    <div class="tab-content" id="tab-obshub-dashboards" data-group="tab-obshub">
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">1</div><div class="step-title">Create a Unified Lab Dashboard</div><span class="step-badge badge-concept">Browser Task</span></div>
+        <div class="step-desc">Navigate to <strong>Dashboards → New Dashboard</strong>. Choose "Blank Dashboard". Add the following widgets to build a comprehensive lab overview board:</div>
+        <table class="kv-table">
+          <thead><tr><th>Widget Type</th><th>Metric / Source</th><th>Title</th></tr></thead>
+          <tbody>
+            <tr><td>Timeseries</td><td>system.cpu.user{host:my-linux-lab}</td><td>CPU Utilization %</td></tr>
+            <tr><td>Timeseries</td><td>system.mem.used{host:my-linux-lab}</td><td>Memory Used (bytes)</td></tr>
+            <tr><td>Query Value</td><td>avg:system.load.1{host:my-linux-lab}</td><td>Load Average (1m)</td></tr>
+            <tr><td>Timeseries</td><td>nginx.net.connections{service:nginx}</td><td>Nginx Active Connections</td></tr>
+            <tr><td>Log Stream</td><td>source:nginx status:error</td><td>Nginx Errors Live</td></tr>
+            <tr><td>APM Service Summary</td><td>service:lab-flask-app env:lab</td><td>Flask App P99 Latency</td></tr>
+            <tr><td>Hostmap</td><td>All hosts</td><td>Infrastructure Hostmap</td></tr>
+            <tr><td>Monitor Summary</td><td>env:lab</td><td>Lab Monitor Status</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="step-block">
+        <div class="step-header"><div class="step-num">2</div><div class="step-title">Export Dashboard as JSON (Backup)</div><span class="step-badge badge-cmd">Command</span></div>
+        <div class="terminal">
+          <div class="terminal-bar"><div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div><div class="terminal-title">bash — export dashboard via API</div><button class="copy-btn" onclick="copyCmd(this, 'DASHBOARD_ID=abc-123-xyz   # Replace with your dashboard ID\ncurl -X GET \\\n  &quot;https://api.datadoghq.com/api/v1/dashboard/${DASHBOARD_ID}&quot; \\\n  -H &quot;DD-API-KEY: ${DD_API_KEY}&quot; \\\n  -H &quot;DD-APPLICATION-KEY: ${DD_APP_KEY}&quot; \\\n  -H &quot;Accept: application/json&quot; \\\n  | python3 -m json.tool > my-lab-dashboard.json\necho &quot;Dashboard exported to my-lab-dashboard.json&quot;')">Copy</button></div>
+          <div class="terminal-body">
+            <span class="t-prompt">$ </span><span class="t-var">DASHBOARD_ID</span>=abc-123-xyz<br>
+            <span class="t-prompt">$ </span><span class="t-cmd">curl -X GET</span> \<br>
+            &nbsp;&nbsp;<span class="t-highlight">"https://api.datadoghq.com/api/v1/dashboard/${DASHBOARD_ID}"</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">-H</span> <span class="t-var">"DD-API-KEY: ${DD_API_KEY}"</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">-H</span> <span class="t-var">"DD-APPLICATION-KEY: ${DD_APP_KEY}"</span> \<br>
+            &nbsp;&nbsp;<span class="t-cmd">-H</span> <span class="t-var">"Accept: application/json"</span> \<br>
+            &nbsp;&nbsp;| <span class="t-cmd">python3 -m json.tool</span> > my-lab-dashboard.json<br>
+            <span class="t-success">Dashboard exported to my-lab-dashboard.json</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist">
+        <div class="checklist-title">Observability Hub Checklist</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">CPU/Memory stress test visible in Metrics Explorer</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">CPU High monitor created and in OK/WARN state</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Nginx logs flowing in Log Explorer with status facets</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Log pipeline created with grok parser</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Flask app traces visible in APM Service Map</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Unified dashboard created with all 8 widgets</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box"></div><div class="check-label">Dashboard exported to JSON file</div></div>
+      </div>
+
+      <button class="complete-btn" onclick="markComplete('obshub', this)"> Complete Module 3 — Workshop Done!</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── STATE ──
+  const completed = { overview: false, platform: false, agent: false, obshub: false };
+  const totalModules = Object.keys(completed).length;
+
+  // ── NAVIGATION ──
+  function showSection(id) {
+    document.querySelectorAll('.lab-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + id).classList.add('active');
+
+    const breadcrumbs = {
+      overview: 'Workshop Overview',
+      platform: 'Module 1 → Platform Overview',
+      agent:    'Module 2 → Unified Agent',
+      obshub:   'Module 3 → Observability Hub'
+    };
+    document.getElementById('breadcrumb-text').textContent = breadcrumbs[id] || id;
+
+    // Highlight sidebar item
+    document.querySelectorAll('.nav-item:not(.nav-sub)').forEach(item => {
+      if (item.getAttribute('onclick') && item.getAttribute('onclick').includes("'" + id + "'")) {
+        item.classList.add('active');
+      }
+    });
+  }
+
+  // ── TABS ──
+  function switchTab(group, tabId) {
+    // Find all tab contents in this group
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(t => t.classList.remove('active'));
+    const target = document.getElementById('tab-' + tabId);
+    if (target) target.classList.add('active');
+
+    // Update tab buttons
+    const parentSection = target ? target.closest('.lab-section') : null;
+    if (parentSection) {
+      parentSection.querySelectorAll('.lab-tab').forEach((btn, i) => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
+          btn.classList.add('active');
+        }
+      });
+    }
+  }
+
+  // ── COPY COMMANDS ──
+  function copyCmd(btn, text) {
+    const clean = text.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    navigator.clipboard.writeText(clean).then(() => {
+      btn.textContent = ' Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+      btn.textContent = 'Copy';
+    });
+  }
+
+  // ── CHECKLIST TOGGLE ──
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+    const box = el.querySelector('.check-box');
+    box.textContent = el.classList.contains('checked') ? '' : '';
+    updateProgress();
+  }
+
+  // ── COMPLETE MODULE ──
+  function markComplete(module, btn) {
+    if (btn.classList.contains('completed')) return;
+    completed[module] = true;
+    btn.textContent = ' Module Complete!';
+    btn.classList.add('completed');
+    btn.style.cursor = 'default';
+    const badge = document.getElementById('badge-' + module);
+    if (badge) {
+      badge.textContent = 'Done ';
+      badge.classList.add('done');
+    }
+    updateProgress();
+  }
+
+  // ── PROGRESS ──
+  function updateProgress() {
+    const done = Object.values(completed).filter(Boolean).length;
+    const pct = Math.round((done / totalModules) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  // ── INIT: activate first nav item ──
+  document.querySelector('.nav-item').classList.add('active');
+</script>
+</body>
+</html>
