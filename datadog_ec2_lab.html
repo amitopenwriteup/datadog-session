@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EC2 + Datadog Lab — 30 min</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #111;
+  --white: #fff;
+  --gray-50:  #fafafa;
+  --gray-100: #f0f0f0;
+  --gray-200: #ddd;
+  --gray-300: #bbb;
+  --gray-400: #999;
+  --gray-500: #666;
+  --gray-600: #444;
+  --aws:   #e8821a;
+  --dd:    #632ca6;
+  --green: #1a8a3c;
+  --green-b: #22c55e;
+  --red:   #cc2222;
+  --blue:  #1a4fcc;
+  --mono: 'Courier New', monospace;
+  --sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--white);
+  color: var(--black);
+  font-size: 13px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ═══ LAYOUT ═══ */
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ═══ HEADER ═══ */
+header {
+  border-bottom: 2px solid var(--black);
+  padding: 9px 20px;
+  display: flex; align-items: center; gap: 14px;
+  flex-shrink: 0;
+  background: var(--white);
+}
+header h1 { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+.hbadge {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.2px;
+  border: 1.5px solid; padding: 2px 7px; text-transform: uppercase;
+}
+.hbadge.aws { border-color: var(--aws); color: var(--aws); }
+.hbadge.dd  { border-color: var(--dd);  color: var(--dd); }
+.timer-box {
+  margin-left: auto; display: flex; align-items: center; gap: 10px;
+  font-size: 11px; color: var(--gray-500);
+}
+.timer-val { font-family: var(--mono); font-size: 13px; color: var(--black); font-weight: 700; }
+#lab-status { font-size: 11px; color: var(--gray-400); }
+
+/* ═══ STEP TABS ═══ */
+.steps-bar {
+  border-bottom: 2px solid var(--black);
+  display: flex; flex-shrink: 0;
+  overflow-x: auto;
+  background: var(--white);
+}
+.step-tab {
+  padding: 9px 16px;
+  border: none; border-right: 1px solid var(--gray-200);
+  background: var(--white);
+  cursor: default; pointer-events: none;
+  font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 7px;
+  color: var(--gray-400);
+  position: relative;
+}
+.step-tab.active { background: var(--black); color: var(--white); }
+.step-tab.done   { color: var(--green); }
+.step-tab.done::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--green-b);
+}
+.step-num {
+  width: 17px; height: 17px; border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; flex-shrink: 0;
+}
+.step-est { font-size: 9px; font-weight: 400; color: var(--gray-400); }
+.step-tab.active .step-est { color: var(--gray-300); }
+
+/* ═══ WORKSPACE ═══ */
+.workspace {
+  display: grid;
+  grid-template-columns: 230px 1fr 300px;
+  flex: 1; overflow: hidden;
+}
+
+/* ═══ LEFT: GUIDE ═══ */
+.guide-panel {
+  border-right: 2px solid var(--black);
+  overflow-y: auto; background: var(--white);
+}
+.guide-block {
+  border-bottom: 1px solid var(--gray-200);
+  padding: 12px 14px;
+}
+.guide-block-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--gray-500); margin-bottom: 8px;
+}
+.guide-item {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 11px; color: var(--black); margin-bottom: 7px;
+  line-height: 1.5;
+}
+.guide-item:last-child { margin-bottom: 0; }
+.gi-num {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1.5px solid var(--gray-300);
+  font-size: 9px; font-weight: 700; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--gray-500);
+}
+.gi-num.done { border-color: var(--green); color: var(--green); background: #e8f8ee; }
+.gi-num.active { border-color: var(--black); color: var(--white); background: var(--black); }
+.gi-text { flex: 1; }
+
+.resource-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 0; border-bottom: 1px solid var(--gray-100);
+  font-size: 11px;
+}
+.resource-row:last-child { border-bottom: none; }
+.rdot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gray-300); flex-shrink: 0;
+}
+.rdot.on   { background: var(--green-b); }
+.rdot.spin { background: var(--aws); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.rlabel { font-weight: 600; font-size: 11px; }
+.rsub   { font-size: 10px; color: var(--gray-400); }
+
+/* ═══ MIDDLE: MAIN AREA ═══ */
+.main-area {
+  display: flex; flex-direction: column;
+  overflow: hidden; border-right: 2px solid var(--black);
+}
+
+/* ── Panel switcher ── */
+.panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+.panel.visible { display: flex; }
+
+/* ── AWS Console ── */
+.aws-console {
+  flex: 1; overflow-y: auto;
+  background: var(--gray-50);
+}
+.aws-topbar {
+  background: #232f3e; color: #fff;
+  padding: 8px 16px;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.aws-topbar span { color: #ff9900; font-size: 10px; }
+.aws-breadcrumb {
+  padding: 8px 16px;
+  font-size: 11px; color: var(--gray-500);
+  border-bottom: 1px solid var(--gray-200);
+  background: var(--white);
+  flex-shrink: 0;
+}
+.aws-breadcrumb b { color: var(--black); }
+.aws-body { padding: 16px; }
+.aws-page-title {
+  font-size: 16px; font-weight: 700; margin-bottom: 4px;
+}
+.aws-page-sub {
+  font-size: 11px; color: var(--gray-500); margin-bottom: 16px;
+}
+.aws-section {
+  background: var(--white); border: 1px solid var(--gray-200);
+  margin-bottom: 12px;
+}
+.aws-section-hdr {
+  padding: 10px 14px; border-bottom: 1px solid var(--gray-200);
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+  background: #f8f8f8;
+}
+.aws-section-body { padding: 14px; }
+.aws-field { margin-bottom: 12px; }
+.aws-field:last-child { margin-bottom: 0; }
+.aws-label { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.aws-label .opt { color: var(--gray-400); font-weight: 400; }
+.aws-input {
+  width: 100%; border: 1px solid var(--gray-300);
+  padding: 6px 8px; font-size: 12px; font-family: var(--sans);
+  background: var(--white); outline: none;
+}
+.aws-input:focus { border-color: #0070f3; box-shadow: 0 0 0 2px #cce0ff; }
+.aws-select {
+  width: 100%; border: 1px solid var(--gray-300);
+  padding: 6px 8px; font-size: 12px; font-family: var(--sans);
+  background: var(--white); outline: none; cursor: pointer;
+}
+.ami-option {
+  border: 1.5px solid var(--gray-200); padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; margin-bottom: 6px;
+  transition: border-color 0.15s;
+}
+.ami-option:hover { border-color: var(--black); }
+.ami-option.selected { border-color: #0070f3; background: #f0f7ff; }
+.ami-radio {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--gray-300); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ami-option.selected .ami-radio { border-color: #0070f3; }
+.ami-option.selected .ami-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #0070f3;
+}
+.ami-name { font-weight: 600; font-size: 12px; }
+.ami-id   { font-size: 10px; color: var(--gray-400); font-family: var(--mono); }
+.ami-badge {
+  margin-left: auto; font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+  border: 1px solid var(--green); color: var(--green); padding: 1px 6px;
+  text-transform: uppercase;
+}
+.pem-box {
+  border: 1px solid var(--aws); background: #fff8f0;
+  padding: 10px 12px; font-size: 11px;
+  display: flex; align-items: center; gap: 10px;
+}
+.pem-label { flex: 1; }
+.btn-pem {
+  padding: 5px 12px; border: 1.5px solid var(--aws);
+  background: var(--aws); color: #fff;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.btn-pem:hover { background: #d07010; }
+.aws-launch-bar {
+  padding: 12px 16px; border-top: 2px solid var(--black);
+  display: flex; gap: 8px; align-items: center;
+  background: var(--white); flex-shrink: 0;
+}
+
+/* ── DD Signup ── */
+.dd-signup-wrap {
+  flex: 1; overflow-y: auto; display: flex; align-items: flex-start;
+  justify-content: center; padding: 24px 16px;
+  background: var(--white);
+}
+.dd-signup-box {
+  width: 100%; max-width: 380px;
+}
+.dd-signup-logo {
+  font-size: 18px; font-weight: 700; color: var(--dd);
+  margin-bottom: 4px; letter-spacing: -0.5px;
+}
+.dd-signup-sub {
+  font-size: 11px; color: var(--gray-500); margin-bottom: 20px;
+}
+.dd-form-field { margin-bottom: 12px; }
+.dd-form-label { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.dd-form-input {
+  width: 100%; border: 1.5px solid var(--gray-300);
+  padding: 8px 10px; font-size: 13px; font-family: var(--sans);
+  outline: none; background: var(--white);
+}
+.dd-form-input:focus { border-color: var(--dd); }
+.dd-trial-note {
+  font-size: 10px; color: var(--gray-400); margin-bottom: 16px;
+  line-height: 1.6;
+}
+.btn-dd-signup {
+  width: 100%; padding: 10px;
+  background: var(--dd); color: #fff;
+  border: none; font-size: 13px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.3px;
+}
+.btn-dd-signup:hover { background: #4e1f8a; }
+
+/* ── DD API Key page ── */
+.dd-console-wrap {
+  flex: 1; display: flex; overflow: hidden;
+  background: var(--white);
+}
+.dd-nav {
+  width: 140px; border-right: 1px solid var(--gray-200);
+  overflow-y: auto; flex-shrink: 0;
+}
+.dd-nav-section {
+  padding: 8px 12px 4px;
+  font-size: 9px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--gray-400);
+}
+.dd-nav-item {
+  padding: 6px 12px; font-size: 11px; cursor: pointer;
+  color: var(--gray-600); display: flex; align-items: center; gap: 6px;
+}
+.dd-nav-item:hover { background: var(--gray-100); }
+.dd-nav-item.active { background: #f0e8fc; color: var(--dd); font-weight: 600; }
+.dd-main-content { flex: 1; overflow-y: auto; padding: 16px; }
+.dd-page-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.dd-page-sub { font-size: 11px; color: var(--gray-500); margin-bottom: 16px; }
+.dd-platform-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+}
+.dd-platform-card {
+  border: 1.5px solid var(--gray-200); padding: 10px 12px;
+  cursor: pointer; transition: border-color 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.dd-platform-card:hover { border-color: var(--gray-400); }
+.dd-platform-card.selected { border-color: var(--dd); background: #f8f2ff; }
+.dd-plat-icon {
+  width: 24px; height: 24px; border: 1.5px solid var(--gray-300);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; flex-shrink: 0; color: var(--gray-400);
+}
+.dd-platform-card.selected .dd-plat-icon { border-color: var(--dd); color: var(--dd); }
+.dd-plat-name { font-size: 12px; font-weight: 600; }
+.dd-plat-ver  { font-size: 10px; color: var(--gray-400); }
+.api-key-block {
+  background: var(--gray-50); border: 1.5px solid var(--gray-200);
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.api-key-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.api-key-label { font-size: 11px; font-weight: 600; flex: 1; }
+.btn-copy {
+  padding: 4px 10px; border: 1.5px solid var(--black);
+  background: transparent; font-size: 10px; font-weight: 700;
+  cursor: pointer; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.btn-copy:hover { background: var(--black); color: var(--white); }
+.api-key-val {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--white); border: 1px solid var(--gray-200);
+  padding: 6px 8px; color: var(--black);
+  word-break: break-all; letter-spacing: 1px;
+}
+.install-cmd-block {
+  background: #111; color: #d4d4d4;
+  padding: 12px 14px; margin-bottom: 12px;
+  font-family: var(--mono); font-size: 11px; line-height: 1.7;
+}
+.install-cmd-block .kw { color: #a78bfa; }
+.install-cmd-block .str { color: #86efac; }
+
+/* ── Terminal ── */
+.terminal-wrap {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; background: #0d1117;
+}
+.terminal-titlebar {
+  background: #161b22; border-bottom: 1px solid #30363d;
+  padding: 6px 14px; display: flex; align-items: center; gap: 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: #8b949e; flex-shrink: 0;
+}
+.tdot { width: 8px; height: 8px; border-radius: 50%; }
+.tdot.r { background: #f85149; } .tdot.y { background: #d29922; } .tdot.g { background: #3fb950; }
+.terminal {
+  flex: 1; overflow-y: auto;
+  padding: 14px 16px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.7;
+  color: #c9d1d9;
+}
+.terminal .line { margin-bottom: 1px; word-break: break-all; white-space: pre-wrap; }
+.terminal .prompt { color: #3fb950; }
+.terminal .cmd    { color: #fff; }
+.terminal .out    { color: #8b949e; }
+.terminal .info   { color: #58a6ff; }
+.terminal .success{ color: #3fb950; }
+.terminal .warn   { color: #d29922; }
+.terminal .err    { color: #f85149; }
+.terminal .dd     { color: #c084fc; }
+.terminal .cursor {
+  display: inline-block; width: 7px; height: 13px;
+  background: #c9d1d9; vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Action bar ── */
+.action-bar {
+  border-top: 1.5px solid #30363d; padding: 9px 14px;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  background: #161b22; flex-shrink: 0;
+}
+.btn {
+  padding: 6px 14px; border: 1.5px solid;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  background: transparent; transition: all 0.15s;
+}
+.btn-primary { border-color: #fff; color: #fff; }
+.btn-primary:hover { background: #fff; color: #000; }
+.btn-aws  { border-color: var(--aws); color: var(--aws); }
+.btn-aws:hover  { background: var(--aws); color: #fff; }
+.btn-dd   { border-color: #c084fc; color: #c084fc; }
+.btn-dd:hover   { background: #c084fc; color: #000; }
+.btn-green{ border-color: #3fb950; color: #3fb950; }
+.btn-green:hover{ background: #3fb950; color: #000; }
+.btn-muted{ border-color: #444; color: #555; }
+.btn-muted:hover{ background: #222; color: #999; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+
+/* light action bar (for AWS / DD panels) */
+.action-bar.light {
+  background: var(--white); border-top: 2px solid var(--black);
+}
+.action-bar.light .btn-primary { border-color: var(--black); color: var(--black); }
+.action-bar.light .btn-primary:hover { background: var(--black); color: var(--white); }
+.action-bar.light .btn-muted { border-color: var(--gray-300); color: var(--gray-400); }
+.action-bar.light .btn-muted:hover { background: var(--gray-100); color: var(--gray-600); }
+
+/* ═══ RIGHT: DATADOG PANEL ═══ */
+.dd-panel {
+  overflow-y: auto; display: flex; flex-direction: column;
+  background: var(--white);
+}
+.dd-panel-hdr {
+  padding: 10px 14px; border-bottom: 2px solid var(--black);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.dd-panel-hdr h2 { font-size: 12px; font-weight: 700; }
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gray-300); flex-shrink: 0;
+}
+.live-dot.on { background: var(--green-b); animation: pulse 2s infinite; }
+.dd-sec {
+  border-bottom: 1px solid var(--gray-200);
+  padding: 10px 12px;
+}
+.dd-sec-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--gray-400); margin-bottom: 8px;
+}
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.metric-card {
+  border: 1.5px solid var(--gray-200); padding: 8px;
+}
+.metric-card:hover { border-color: var(--black); }
+.metric-lbl { font-size: 9px; color: var(--gray-500); margin-bottom: 3px; }
+.metric-val { font-size: 18px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+.metric-val.ok   { color: var(--green); }
+.metric-val.warn { color: var(--aws); }
+.metric-val.na   { color: var(--gray-300); }
+.pbar { height: 3px; background: var(--gray-100); margin-top: 5px; }
+.pbar-fill { height: 100%; background: var(--black); transition: width 0.4s; }
+
+.host-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--gray-100);
+  font-size: 11px;
+}
+.host-row:last-child { border-bottom: none; }
+.hstatus { font-size: 10px; font-weight: 700; }
+.hstatus.ok { color: var(--green); }
+
+.alert-row {
+  border: 1.5px solid var(--gray-200); padding: 7px 9px;
+  margin-bottom: 5px; font-size: 11px;
+  display: flex; gap: 7px; align-items: flex-start;
+}
+.alert-row:last-child { margin-bottom: 0; }
+.alert-row.ok   { border-color: var(--green-b); }
+.alert-icon { font-size: 12px; line-height: 1.4; flex-shrink: 0; }
+.alert-title { font-weight: 700; font-size: 11px; }
+.alert-sub   { font-size: 10px; color: var(--gray-400); margin-top: 1px; }
+
+.log-stream {
+  font-family: var(--mono); font-size: 10px; line-height: 1.65;
+  max-height: 130px; overflow-y: auto;
+}
+.log-line { display: flex; gap: 6px; padding: 1px 0; border-bottom: 1px solid var(--gray-100); }
+.log-ts   { color: var(--gray-400); flex-shrink: 0; }
+.log-lvl  { font-weight: 700; flex-shrink: 0; width: 36px; }
+.log-lvl.INFO  { color: var(--blue); }
+.log-lvl.WARN  { color: var(--aws); }
+.log-lvl.ERROR { color: var(--red); }
+.log-msg  { color: var(--gray-600); }
+
+.dd-placeholder {
+  padding: 30px 16px; text-align: center; color: var(--gray-400); flex: 1;
+}
+.dd-placeholder h3 { font-size: 12px; color: var(--gray-500); margin-bottom: 6px; }
+.dd-placeholder p  { font-size: 11px; line-height: 1.6; }
+.dd-checklist {
+  margin-top: 12px; text-align: left; border: 1.5px dashed var(--gray-200);
+  padding: 12px 14px; font-size: 11px; line-height: 2; color: var(--gray-500);
+}
+
+/* infra map */
+.infra-map { border: 1.5px solid var(--gray-100); padding: 10px 12px; }
+.map-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.map-box {
+  padding: 4px 8px; border: 1.5px solid var(--gray-300);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  text-align: center; white-space: nowrap;
+}
+.map-box.aws  { border-color: var(--aws); color: var(--aws); }
+.map-box.host { border-color: var(--black); color: var(--black); }
+.map-box.dd   { border-color: var(--dd); color: var(--dd); }
+.map-arrow { color: var(--gray-300); font-size: 14px; }
+.map-line  { flex: 1; height: 1px; background: var(--gray-200); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); }
+
+.note-pill {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.8px; border: 1px solid; padding: 1px 6px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.note-pill.info { border-color: var(--blue); color: var(--blue); }
+.note-pill.warn { border-color: var(--aws); color: var(--aws); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <h1>EC2 + Datadog Integration Lab</h1>
+  <span class="hbadge aws">AWS EC2</span>
+  <span class="hbadge dd">Datadog Trial</span>
+  <div class="timer-box">
+    <span>Elapsed</span>
+    <span class="timer-val" id="timer">00:00</span>
+    <span>/ 30:00</span>
+    &nbsp;&nbsp;
+    <span id="lab-status">Ready — click Launch EC2 to begin</span>
+  </div>
+</header>
+
+<!-- STEP TABS -->
+<div class="steps-bar">
+  <div class="step-tab active" id="tab-1">
+    <span class="step-num">1</span>Launch EC2 <span class="step-est">~5 min</span>
+  </div>
+  <div class="step-tab" id="tab-2">
+    <span class="step-num">2</span>SSH via PEM <span class="step-est">~4 min</span>
+  </div>
+  <div class="step-tab" id="tab-3">
+    <span class="step-num">3</span>Datadog Trial <span class="step-est">~3 min</span>
+  </div>
+  <div class="step-tab" id="tab-4">
+    <span class="step-num">4</span>Get API Key <span class="step-est">~3 min</span>
+  </div>
+  <div class="step-tab" id="tab-5">
+    <span class="step-num">5</span>Install Agent <span class="step-est">~8 min</span>
+  </div>
+  <div class="step-tab" id="tab-6">
+    <span class="step-num">6</span>Check Status <span class="step-est">~7 min</span>
+  </div>
+</div>
+
+<div class="workspace">
+
+  <!-- LEFT: GUIDE PANEL -->
+  <div class="guide-panel">
+    <div class="guide-block">
+      <div class="guide-block-title">Progress</div>
+      <div class="guide-item"><span class="gi-num active" id="gi1">1</span><span class="gi-text">Launch EC2 Ubuntu instance from AWS Console with t2.micro (free tier)</span></div>
+      <div class="guide-item"><span class="gi-num" id="gi2">2</span><span class="gi-text">Download PEM key and SSH into the running instance</span></div>
+      <div class="guide-item"><span class="gi-num" id="gi3">3</span><span class="gi-text">Register a free Datadog 14-day trial account</span></div>
+      <div class="guide-item"><span class="gi-num" id="gi4">4</span><span class="gi-text">In Datadog: navigate to Integrations &gt; Agent, select Linux, copy API key</span></div>
+      <div class="guide-item"><span class="gi-num" id="gi5">5</span><span class="gi-text">Paste and run one-step install command on EC2</span></div>
+      <div class="guide-item"><span class="gi-num" id="gi6">6</span><span class="gi-text">Verify agent status and confirm host appears in Datadog</span></div>
+    </div>
+
+    <div class="guide-block">
+      <div class="guide-block-title">AWS Resources</div>
+      <div class="resource-row">
+        <div class="rdot" id="r-ec2"></div>
+        <div>
+          <div class="rlabel">EC2 Instance</div>
+          <div class="rsub" id="r-ec2-sub">not started</div>
+        </div>
+      </div>
+      <div class="resource-row">
+        <div class="rdot" id="r-ssh"></div>
+        <div>
+          <div class="rlabel">SSH Session</div>
+          <div class="rsub" id="r-ssh-sub">awaiting instance</div>
+        </div>
+      </div>
+      <div class="resource-row">
+        <div class="rdot" id="r-agent"></div>
+        <div>
+          <div class="rlabel">DD Agent</div>
+          <div class="rsub" id="r-agent-sub">not installed</div>
+        </div>
+      </div>
+      <div class="resource-row">
+        <div class="rdot" id="r-dd"></div>
+        <div>
+          <div class="rlabel">Datadog SaaS</div>
+          <div class="rsub" id="r-dd-sub">awaiting agent</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-block">
+      <div class="guide-block-title">Key Info</div>
+      <div style="font-size:11px;line-height:1.8;color:var(--gray-600);">
+        <div><b>Region:</b> us-east-1</div>
+        <div><b>AMI:</b> Ubuntu 22.04 LTS</div>
+        <div><b>Type:</b> t2.micro (free tier)</div>
+        <div><b>PEM Key:</b> <span id="pem-name" style="font-family:var(--mono);">not created</span></div>
+        <div><b>Public IP:</b> <span id="pub-ip">—</span></div>
+        <div><b>DD Org:</b> <span id="dd-org-name">—</span></div>
+        <div><b>API Key:</b> <span id="api-key-short" style="font-family:var(--mono);">—</span></div>
+      </div>
+    </div>
+
+    <div style="padding:12px 14px;font-size:10px;color:var(--gray-400);line-height:1.7;">
+      Agent ships metrics, logs &amp; traces to Datadog SaaS backend over HTTPS port 443. All traffic is outbound only — no inbound firewall changes needed.
+    </div>
+  </div>
+
+  <!-- MIDDLE AREA -->
+  <div class="main-area">
+
+    <!-- PANEL 1: AWS Console — Launch EC2 -->
+    <div class="panel visible" id="panel-1">
+      <div class="aws-console">
+        <div class="aws-topbar">
+          AWS Management Console &nbsp;
+          <span>EC2 &gt; Instances &gt; Launch Instance</span>
+        </div>
+        <div class="aws-breadcrumb">
+          EC2 &gt; Instances &gt; <b>Launch an instance</b>
+        </div>
+        <div class="aws-body">
+          <div class="aws-page-title">Launch an instance</div>
+          <div class="aws-page-sub">Configure settings below and click Launch Instance. Use defaults where not specified.</div>
+
+          <!-- Name -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Name and tags</div>
+            <div class="aws-section-body">
+              <div class="aws-field">
+                <div class="aws-label">Name</div>
+                <input class="aws-input" type="text" id="ec2-name-input" value="my-ubuntu-server" />
+              </div>
+            </div>
+          </div>
+
+          <!-- AMI -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Application and OS Images (Amazon Machine Image)</div>
+            <div class="aws-section-body">
+              <div class="ami-option selected" id="ami-ubuntu" onclick="selectAmi('ubuntu')">
+                <div class="ami-radio"></div>
+                <div>
+                  <div class="ami-name">Ubuntu Server 22.04 LTS (HVM), SSD Volume Type</div>
+                  <div class="ami-id">ami-0c7217cdde317cfec · x86_64 · EBS · 64-bit</div>
+                </div>
+                <div class="ami-badge">Free Tier</div>
+              </div>
+              <div class="ami-option" id="ami-amzn" onclick="selectAmi('amzn')">
+                <div class="ami-radio"></div>
+                <div>
+                  <div class="ami-name">Amazon Linux 2023 AMI</div>
+                  <div class="ami-id">ami-0dfcb1ef8550277af · x86_64 · EBS · 64-bit</div>
+                </div>
+                <div class="ami-badge">Free Tier</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Instance type -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Instance type</div>
+            <div class="aws-section-body">
+              <div class="aws-field">
+                <div class="aws-label">Instance type</div>
+                <select class="aws-select" id="inst-type">
+                  <option value="t2.micro" selected>t2.micro — 1 vCPU, 1 GiB RAM (Free tier eligible)</option>
+                  <option value="t3.micro">t3.micro — 2 vCPU, 1 GiB RAM</option>
+                  <option value="t3.small">t3.small — 2 vCPU, 2 GiB RAM</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Key Pair -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Key pair (login)</div>
+            <div class="aws-section-body">
+              <div class="aws-field">
+                <div class="aws-label">Key pair name</div>
+                <select class="aws-select" id="key-pair-sel">
+                  <option value="new">-- Create new key pair --</option>
+                  <option value="existing">my-existing-key</option>
+                </select>
+              </div>
+              <div id="new-kp-section" style="margin-top:10px;">
+                <div class="aws-field">
+                  <div class="aws-label">New key pair name</div>
+                  <input class="aws-input" type="text" id="kp-name" value="datadog-lab-key" />
+                </div>
+                <div style="display:flex;gap:10px;">
+                  <div style="flex:1;">
+                    <div class="aws-label">Key pair type</div>
+                    <select class="aws-select"><option>RSA</option><option>ED25519</option></select>
+                  </div>
+                  <div style="flex:1;">
+                    <div class="aws-label">Private key file format</div>
+                    <select class="aws-select"><option>.pem (OpenSSH)</option><option>.ppk (PuTTY)</option></select>
+                  </div>
+                </div>
+                <div class="pem-box" style="margin-top:10px;" id="pem-download-box">
+                  <div class="pem-label">
+                    <b id="pem-file-name">datadog-lab-key.pem</b><br>
+                    <span style="font-size:10px;color:var(--gray-500);">Download and save in a secure location. You cannot download this again.</span>
+                  </div>
+                  <button class="btn-pem" onclick="downloadPem()">Download .pem</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security Group -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Network settings</div>
+            <div class="aws-section-body">
+              <div style="font-size:11px;color:var(--gray-600);margin-bottom:10px;">
+                A security group will be created with SSH (port 22) allowed. This lets you connect via PEM key.
+              </div>
+              <div style="display:flex;gap:10px;font-size:11px;">
+                <label style="display:flex;gap:6px;align-items:center;">
+                  <input type="checkbox" checked disabled /> Allow SSH traffic (port 22)
+                </label>
+                <label style="display:flex;gap:6px;align-items:center;">
+                  <input type="checkbox" /> Allow HTTP (port 80)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Storage -->
+          <div class="aws-section">
+            <div class="aws-section-hdr">Storage</div>
+            <div class="aws-section-body" style="font-size:11px;color:var(--gray-600);">
+              1x 8 GiB gp3 root volume &nbsp;(Free tier: up to 30 GiB)
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div style="background:#f0f7ff;border:1px solid #c0d8f0;padding:10px 12px;font-size:11px;line-height:1.9;margin-bottom:16px;">
+            <b>Summary</b><br>
+            AMI: Ubuntu Server 22.04 LTS &nbsp;|&nbsp; Type: t2.micro &nbsp;|&nbsp; Key: <span id="summary-key">datadog-lab-key</span><br>
+            Storage: 8 GiB gp3 &nbsp;|&nbsp; Security Group: SSH (22) open &nbsp;|&nbsp; Region: us-east-1
+          </div>
+        </div>
+      </div>
+      <div class="action-bar light">
+        <button class="btn btn-aws" id="btn-launch" onclick="runStep1()">Launch Instance</button>
+        <span style="font-size:11px;color:var(--gray-400);" id="pem-status">Download PEM key before launching</span>
+        <button class="btn btn-muted" style="margin-left:auto;" onclick="resetLab()">Reset Lab</button>
+      </div>
+    </div>
+
+    <!-- PANEL 2: Terminal SSH -->
+    <div class="panel" id="panel-2">
+      <div class="terminal-wrap">
+        <div class="terminal-titlebar">
+          <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+          <span style="flex:1;text-align:center;" id="term-title">bash — local machine</span>
+        </div>
+        <div class="terminal" id="terminal-ssh"></div>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-primary" id="btn-ssh" onclick="runStep2()">Connect via SSH</button>
+        <button class="btn btn-muted" style="margin-left:auto;" onclick="resetLab()">Reset Lab</button>
+      </div>
+    </div>
+
+    <!-- PANEL 3: Datadog Signup -->
+    <div class="panel" id="panel-3">
+      <div class="dd-signup-wrap">
+        <div class="dd-signup-box">
+          <div class="dd-signup-logo">Datadog</div>
+          <div class="dd-signup-sub">Start your free 14-day trial — no credit card required</div>
+          <div class="dd-form-field">
+            <div class="dd-form-label">Work email</div>
+            <input class="dd-form-input" type="email" id="dd-email" placeholder="you@company.com" value="" />
+          </div>
+          <div class="dd-form-field">
+            <div class="dd-form-label">Password</div>
+            <input class="dd-form-input" type="password" id="dd-pass" placeholder="Min. 12 characters" value="SecurePass2024!" />
+          </div>
+          <div class="dd-form-field">
+            <div class="dd-form-label">Company / Organization name</div>
+            <input class="dd-form-input" type="text" id="dd-org" placeholder="Acme Corp" value="" />
+          </div>
+          <div class="dd-form-field">
+            <div class="dd-form-label">Datadog site</div>
+            <select class="dd-form-input" style="border-radius:0;">
+              <option>US1 — app.datadoghq.com (recommended)</option>
+              <option>EU1 — app.datadoghq.eu</option>
+              <option>US3 — us3.datadoghq.com</option>
+            </select>
+          </div>
+          <div class="dd-trial-note">
+            By creating an account you agree to Datadog's Terms of Service and Privacy Policy. After 14 days the account downgrades to a free plan (1 host, limited features) unless you subscribe.
+          </div>
+          <button class="btn-dd-signup" onclick="runStep3()">Create Free Account</button>
+        </div>
+      </div>
+      <div class="action-bar light">
+        <span style="font-size:11px;color:var(--gray-400);">Fill in your work email and org name, then create the account.</span>
+        <button class="btn btn-muted" style="margin-left:auto;" onclick="resetLab()">Reset Lab</button>
+      </div>
+    </div>
+
+    <!-- PANEL 4: Datadog Agent Install Page -->
+    <div class="panel" id="panel-4">
+      <div class="dd-console-wrap">
+        <div class="dd-nav">
+          <div class="dd-nav-section">Integrations</div>
+          <div class="dd-nav-item">Integrations</div>
+          <div class="dd-nav-item active">Agent</div>
+          <div class="dd-nav-item">API Keys</div>
+          <div class="dd-nav-section">Infrastructure</div>
+          <div class="dd-nav-item">Host Map</div>
+          <div class="dd-nav-item">Containers</div>
+          <div class="dd-nav-section">Monitors</div>
+          <div class="dd-nav-item">Manage Monitors</div>
+          <div class="dd-nav-section">Logs</div>
+          <div class="dd-nav-item">Log Explorer</div>
+        </div>
+        <div class="dd-main-content">
+          <div class="dd-page-title">Install the Datadog Agent</div>
+          <div class="dd-page-sub">Choose your platform to get a one-step installation command.</div>
+
+          <div class="dd-platform-grid">
+            <div class="dd-platform-card selected" id="plat-linux" onclick="selectPlatform('linux')">
+              <div class="dd-plat-icon">LX</div>
+              <div>
+                <div class="dd-plat-name">Linux</div>
+                <div class="dd-plat-ver">Ubuntu, Debian, RHEL, CentOS</div>
+              </div>
+            </div>
+            <div class="dd-platform-card" id="plat-win" onclick="selectPlatform('win')">
+              <div class="dd-plat-icon">WIN</div>
+              <div>
+                <div class="dd-plat-name">Windows</div>
+                <div class="dd-plat-ver">Server 2016+</div>
+              </div>
+            </div>
+            <div class="dd-platform-card" id="plat-mac" onclick="selectPlatform('mac')">
+              <div class="dd-plat-icon">MAC</div>
+              <div>
+                <div class="dd-plat-name">macOS</div>
+                <div class="dd-plat-ver">12 Monterey+</div>
+              </div>
+            </div>
+            <div class="dd-platform-card" id="plat-docker" onclick="selectPlatform('docker')">
+              <div class="dd-plat-icon">DKR</div>
+              <div>
+                <div class="dd-plat-name">Docker</div>
+                <div class="dd-plat-ver">Engine 20.10+</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="linux-instructions" style="">
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--gray-200);">
+              Step 1 — Your API Key
+            </div>
+            <div class="api-key-block">
+              <div class="api-key-row">
+                <div class="api-key-label">API Key (auto-generated for your org)</div>
+                <button class="btn-copy" onclick="copyApiKey()">Copy</button>
+              </div>
+              <div class="api-key-val" id="api-key-display">a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6</div>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--gray-200);">
+              Step 2 — Run this command on your EC2 instance (Ubuntu)
+            </div>
+            <div class="install-cmd-block" id="dd-install-cmd">
+<span class="kw">DD_API_KEY</span>=<span class="str">a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6</span> <span class="kw">DD_SITE</span>=<span class="str">"datadoghq.com"</span> bash -c \
+  <span style="color:#fbbf24;">"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"</span>
+            </div>
+            <div class="api-key-row" style="margin-bottom:12px;">
+              <div style="font-size:11px;color:var(--gray-500);flex:1;">Copy the command above, paste it into your EC2 SSH session, and press Enter.</div>
+              <button class="btn-copy" onclick="copyInstallCmd()">Copy Command</button>
+            </div>
+
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--gray-200);">
+              What the agent collects
+            </div>
+            <div style="font-size:11px;color:var(--gray-600);line-height:2;">
+              CPU &nbsp;·&nbsp; Memory &nbsp;·&nbsp; Disk I/O &nbsp;·&nbsp; Network &nbsp;·&nbsp; System logs &nbsp;·&nbsp; Process list &nbsp;·&nbsp; NTP
+            </div>
+          </div>
+
+          <div id="other-platform-msg" style="display:none;font-size:12px;color:var(--gray-500);padding:20px 0;">
+            Select Linux for this lab. Your EC2 instance runs Ubuntu 22.04.
+          </div>
+        </div>
+      </div>
+      <div class="action-bar light">
+        <button class="btn btn-dd" style="border-color:var(--dd);color:var(--dd);" id="btn-gotostep5" onclick="goStep5()">I have copied the command — go to EC2 terminal</button>
+        <button class="btn btn-muted" style="margin-left:auto;" onclick="resetLab()">Reset Lab</button>
+      </div>
+    </div>
+
+    <!-- PANEL 5+6: Terminal — Install & Verify -->
+    <div class="panel" id="panel-56">
+      <div class="terminal-wrap">
+        <div class="terminal-titlebar">
+          <div class="tdot r"></div><div class="tdot y"></div><div class="tdot g"></div>
+          <span style="flex:1;text-align:center;" id="term-title-56">SSH — ubuntu@<span id="term-ip">54.198.12.77</span> — bash</span>
+        </div>
+        <div class="terminal" id="terminal-main"></div>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-dd" id="btn-install" onclick="runStep5()" disabled>Run Install Command</button>
+        <button class="btn btn-primary" id="btn-verify" onclick="runStep6()" disabled>Check Status</button>
+        <button class="btn btn-muted" style="margin-left:auto;" onclick="resetLab()">Reset Lab</button>
+      </div>
+    </div>
+
+  </div><!-- /main-area -->
+
+  <!-- RIGHT: DATADOG PANEL -->
+  <div class="dd-panel">
+    <div class="dd-panel-hdr">
+      <div class="live-dot" id="live-dot"></div>
+      <h2>Datadog Console</h2>
+      <span style="font-size:10px;color:#888;margin-left:auto;">app.datadoghq.com</span>
+    </div>
+
+    <!-- Placeholder -->
+    <div class="dd-placeholder" id="dd-placeholder">
+      <h3>Waiting for agent</h3>
+      <p>Complete all 6 steps to see your Ubuntu host reporting live metrics to Datadog.</p>
+      <div class="dd-checklist">
+        Step 1 → Launch EC2 instance<br>
+        Step 2 → SSH via PEM key<br>
+        Step 3 → Create Datadog trial<br>
+        Step 4 → Copy API key<br>
+        Step 5 → Install agent on EC2<br>
+        Step 6 → Check status
+      </div>
+    </div>
+
+    <!-- Live Dashboard -->
+    <div id="dd-dashboard" style="display:none;">
+      <div class="dd-sec">
+        <div class="dd-sec-title">Infrastructure Map</div>
+        <div class="infra-map">
+          <div class="map-row">
+            <div class="map-box aws">AWS EC2<br>us-east-1</div>
+            <div class="map-arrow">→</div>
+            <div class="map-box host">Ubuntu 22.04<br><span id="map-hostname">my-ubuntu-server</span></div>
+            <div class="map-arrow">→</div>
+            <div class="map-box dd">Datadog<br>SaaS</div>
+          </div>
+          <div style="font-size:10px;color:var(--gray-400);margin-top:4px;">Agent → HTTPS:443 → intake.datadoghq.com</div>
+        </div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-sec-title">Host Metrics — <span id="dd-hostname">my-ubuntu-server</span></div>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-lbl">CPU Usage</div>
+            <div class="metric-val ok" id="m-cpu">--</div>
+            <div class="pbar"><div class="pbar-fill" id="pb-cpu" style="width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Memory Used</div>
+            <div class="metric-val ok" id="m-mem">--</div>
+            <div class="pbar"><div class="pbar-fill" id="pb-mem" style="width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Disk I/O Read</div>
+            <div class="metric-val ok" id="m-disk">--</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Network In</div>
+            <div class="metric-val ok" id="m-net">--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-sec-title">Hosts (1 reporting)</div>
+        <div class="host-row">
+          <div class="rdot on"></div>
+          <div style="flex:1;">
+            <div style="font-weight:600;font-size:11px;" id="host-name-dd">my-ubuntu-server</div>
+            <div style="font-size:10px;color:#888;">10.0.1.42 · t2.micro · us-east-1a</div>
+          </div>
+          <div class="hstatus ok">OK</div>
+        </div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-sec-title">Monitors</div>
+        <div class="alert-row ok">
+          <div class="alert-icon">✓</div>
+          <div>
+            <div class="alert-title">CPU high alert</div>
+            <div class="alert-sub">OK · threshold 85% · current <span id="cpu-alert-val">--</span></div>
+          </div>
+        </div>
+        <div class="alert-row ok">
+          <div class="alert-icon">✓</div>
+          <div>
+            <div class="alert-title">Agent heartbeat</div>
+            <div class="alert-sub">Reporting · last check &lt;15s</div>
+          </div>
+        </div>
+        <div class="alert-row ok">
+          <div class="alert-icon">✓</div>
+          <div>
+            <div class="alert-title">Disk free space</div>
+            <div class="alert-sub">OK · 78% free on /dev/xvda1</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-sec-title">Live Log Stream</div>
+        <div class="log-stream" id="log-stream"></div>
+      </div>
+
+      <div class="dd-sec">
+        <div class="dd-sec-title">Agent Info</div>
+        <div style="font-size:11px;line-height:2.1;font-family:var(--mono);">
+          <div><span style="color:#888;">Version:</span> 7.52.1</div>
+          <div><span style="color:#888;">Platform:</span> Ubuntu 22.04.3 LTS</div>
+          <div><span style="color:#888;">Hostname:</span> <span id="agent-hostname">my-ubuntu-server</span></div>
+          <div><span style="color:#888;">API Key:</span> ••••••••••••••••••••••••c5d6</div>
+          <div><span style="color:#888;">Checks:</span> cpu, disk, io, memory, network, ntp</div>
+          <div><span style="color:#888;">Site:</span> datadoghq.com</div>
+        </div>
+      </div>
+    </div><!-- /dd-dashboard -->
+  </div>
+
+</div><!-- /workspace -->
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let state = {
+  step: 0, typing: false, timerStarted: false,
+  timerInterval: null, metricsInterval: null, logInterval: null,
+  ec2Running: false, sshConnected: false, ddSignedUp: false,
+  apiKeyCopied: false, agentInstalled: false, agentRunning: false,
+  pemDownloaded: false,
+  instName: 'my-ubuntu-server',
+  pubIp: '54.198.12.77',
+  apiKey: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+};
+
+const $ = id => document.getElementById(id);
+
+// ══════════════════════════════════════════
+// TIMER
+// ══════════════════════════════════════════
+let elapsedSec = 0;
+function startTimer() {
+  if (state.timerStarted) return;
+  state.timerStarted = true;
+  state.timerInterval = setInterval(() => {
+    elapsedSec++;
+    const m = String(Math.floor(elapsedSec/60)).padStart(2,'0');
+    const s = String(elapsedSec%60).padStart(2,'0');
+    $('timer').textContent = m+':'+s;
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// PANEL SWITCHING
+// ══════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  $(id).classList.add('visible');
+}
+function setTab(n, state_) {
+  for (let i=1;i<=6;i++) {
+    const t = $('tab-'+i);
+    t.classList.remove('active','done');
+    if (i === n) t.classList.add('active');
+    else if (i < n) t.classList.add('done');
+  }
+}
+function setGuide(n) {
+  for (let i=1;i<=6;i++) {
+    const g = $('gi'+i);
+    g.classList.remove('active','done');
+    if (i < n) g.classList.add('done');
+    else if (i === n) g.classList.add('active');
+  }
+}
+function setStatus(msg) { $('lab-status').textContent = msg; }
+function setRdot(id, cls) { const d = $(id); if(d){d.className='rdot '+cls;} }
+function setRsub(id,t) { const d=$(id); if(d)d.textContent=t; }
+
+// ══════════════════════════════════════════
+// TERMINAL HELPERS
+// ══════════════════════════════════════════
+function addLine(termId, cls, text) {
+  const term = $(termId);
+  const d = document.createElement('div');
+  d.className = 'line ' + cls;
+  d.innerHTML = text;
+  term.appendChild(d);
+  term.scrollTop = term.scrollHeight;
+}
+
+async function typeLines(termId, lines, delay=18) {
+  state.typing = true;
+  for (const [cls, text, pause] of lines) {
+    if (cls==='_wait') { await sleep(text); continue; }
+    if (cls==='_char') { await typeChar(termId, text, delay); continue; }
+    addLine(termId, cls, text);
+    await sleep(pause||0);
+  }
+  state.typing = false;
+}
+
+async function typeChar(termId, fullLine, delay) {
+  const term = $(termId);
+  const d = document.createElement('div');
+  d.className = 'line cmd';
+  term.appendChild(d);
+  for (let c of fullLine) {
+    d.textContent += c;
+    term.scrollTop = term.scrollHeight;
+    await sleep(delay);
+  }
+  await sleep(80);
+}
+
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+
+function prompt(cmd) {
+  return ['_char', 'ubuntu@'+state.instName+':~$ '+cmd, 20];
+}
+
+// ══════════════════════════════════════════
+// AWS CONSOLE UI HELPERS
+// ══════════════════════════════════════════
+function selectAmi(id) {
+  ['ubuntu','amzn'].forEach(x => {
+    $('ami-'+x).classList.toggle('selected', x===id);
+  });
+}
+
+let pemDl = false;
+function downloadPem() {
+  const name = $('kp-name').value.trim() || 'datadog-lab-key';
+  $('pem-file-name').textContent = name+'.pem';
+  $('pem-name').textContent = name+'.pem';
+  // Simulate download
+  const blob = new Blob([`-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA(simulated PEM key for lab)\n...this is a simulated key...\n-----END RSA PRIVATE KEY-----`], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name+'.pem';
+  a.click();
+  pemDl = true;
+  state.pemDownloaded = true;
+  $('pem-status').textContent = name+'.pem downloaded — ready to launch';
+  $('pem-status').style.color = 'var(--green)';
+  $('summary-key').textContent = name;
+}
+
+// ══════════════════════════════════════════
+// STEP 1: LAUNCH EC2
+// ══════════════════════════════════════════
+async function runStep1() {
+  if (state.step >= 1) return;
+  startTimer();
+  state.step = 1;
+  state.instName = $('ec2-name-input').value.trim() || 'my-ubuntu-server';
+  $('btn-launch').disabled = true;
+  setStatus('Launching EC2 instance...');
+  setTab(1);
+  setGuide(1);
+
+  // Update map/hostname refs
+  ['map-hostname','dd-hostname','host-name-dd','agent-hostname'].forEach(id => {
+    $(id).textContent = state.instName;
+  });
+
+  setRdot('r-ec2','spin');
+  setRsub('r-ec2-sub','launching...');
+
+  // Brief visual: show pending state then switch to terminal
+  await sleep(1400);
+  showPanel('panel-2');
+
+  const T = 'terminal-ssh';
+  addLine(T,'info','# AWS Console → EC2 is launching: '+state.instName);
+  addLine(T,'out','# Equivalent CLI command for reference:');
+  await typeLines(T,[
+    ['info','$ aws ec2 run-instances \\',100],
+    ['info','    --image-id ami-0c7217cdde317cfec \\',60],
+    ['info','    --instance-type t2.micro \\',60],
+    ['info','    --key-name datadog-lab-key \\',60],
+    ['info','    --security-group-ids sg-08bc3a4d \\',60],
+    ['info','    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value='+state.instName+'}]"',80],
+    ['_wait',900],
+    ['out','{',30],['out','  "InstanceId": "i-0a3f8b2c1d4e5f6a7",',30],
+    ['out','  "State": { "Name": "pending" },',30],
+    ['out','  "PublicIpAddress": "'+state.pubIp+'",',30],
+    ['out','  "PrivateIpAddress": "10.0.1.42"',30],
+    ['out','}',100],
+    ['_wait',600],
+    ['warn','  Waiting for instance to reach running state...',500],
+    ['_wait',1000],
+    ['warn','  i-0a3f8b2c1d4e5f6a7  pending ...',400],
+    ['_wait',800],
+    ['warn','  i-0a3f8b2c1d4e5f6a7  pending ...',400],
+    ['_wait',800],
+    ['success','  i-0a3f8b2c1d4e5f6a7  running  '+state.pubIp,400],
+    ['_wait',400],
+    ['success','Instance '+state.instName+' is now RUNNING.',200],
+    ['out','AMI: Ubuntu Server 22.04 LTS · t2.micro · us-east-1a',100],
+    ['out','Public IP: '+state.pubIp+'  Private IP: 10.0.1.42',100],
+  ]);
+
+  setRdot('r-ec2','on');
+  setRsub('r-ec2-sub','running · '+state.pubIp);
+  $('pub-ip').textContent = state.pubIp;
+  state.ec2Running = true;
+  setTab(2); setGuide(2);
+  setStatus('EC2 running — click Connect via SSH');
+  $('btn-ssh').disabled = false;
+}
+
+// ══════════════════════════════════════════
+// STEP 2: SSH via PEM
+// ══════════════════════════════════════════
+async function runStep2() {
+  if (state.step >= 2 || !state.ec2Running) return;
+  state.step = 2;
+  $('btn-ssh').disabled = true;
+  setStatus('Connecting via SSH with PEM key...');
+  setGuide(2);
+
+  const pemFile = $('pem-name').textContent || 'datadog-lab-key.pem';
+  const T = 'terminal-ssh';
+  addLine(T,'out','');
+  addLine(T,'out','# First, set correct permissions on your PEM key:');
+  await typeLines(T,[
+    ['_char','$ chmod 400 '+pemFile,22],
+    ['_wait',400],
+    ['_char','$ ssh -i "'+pemFile+'" ubuntu@'+state.pubIp,22],
+    ['_wait',1000],
+    ['warn','The authenticity of host \''+state.pubIp+'\' can\'t be established.',60],
+    ['warn','ED25519 key fingerprint is SHA256:Gv3VzJg9mBm7R2pKQ8xLw/Nt0cZH4iWmA3fDyK6vE=',60],
+    ['warn','Are you sure you want to continue connecting (yes/no/[fingerprint])? yes',400],
+    ['_wait',600],
+    ['out','Warning: Permanently added \''+state.pubIp+'\' (ED25519) to the list of known hosts.',100],
+    ['_wait',700],
+    ['success','Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 6.2.0-1018-aws x86_64)',80],
+    ['out','',40],
+    ['out',' * Documentation:  https://help.ubuntu.com',40],
+    ['out',' * Management:     https://landscape.canonical.com',40],
+    ['out','',40],
+    ['out','  System load:  0.09               Processes:       108',40],
+    ['out','  Memory usage: 22%                IPv4: 10.0.1.42',40],
+    ['out','  Usage of /:   21.8% of 7.57GB   Users logged in: 0',40],
+    ['out','',60],
+    ['success','Connected as ubuntu@'+state.instName,0],
+  ]);
+
+  setRdot('r-ssh','on');
+  setRsub('r-ssh-sub','connected · '+state.pubIp);
+  state.sshConnected = true;
+
+  await sleep(600);
+  // Move to DD signup
+  setStatus('SSH connected — create your Datadog trial account');
+  setTab(3); setGuide(3);
+  showPanel('panel-3');
+}
+
+// ══════════════════════════════════════════
+// STEP 3: Datadog Signup
+// ══════════════════════════════════════════
+async function runStep3() {
+  const email = $('dd-email').value.trim();
+  const org   = $('dd-org').value.trim();
+  if (!email || !email.includes('@')) {
+    $('dd-email').style.borderColor='var(--red)';
+    $('dd-email').focus(); return;
+  }
+  if (!org) {
+    $('dd-org').style.borderColor='var(--red)';
+    $('dd-org').focus(); return;
+  }
+  if (state.step >= 3) return;
+  state.step = 3;
+  $('dd-org-name').textContent = org;
+
+  setStatus('Creating Datadog trial account...');
+  showPanel('panel-4');
+  setTab(4); setGuide(4);
+  state.ddSignedUp = true;
+  setStatus('Trial created — select Linux and copy your API key');
+}
+
+// ══════════════════════════════════════════
+// STEP 4: Datadog API Key
+// ══════════════════════════════════════════
+function selectPlatform(plat) {
+  ['linux','win','mac','docker'].forEach(p => $('plat-'+p).classList.toggle('selected', p===plat));
+  $('linux-instructions').style.display = plat==='linux' ? '' : 'none';
+  $('other-platform-msg').style.display = plat!=='linux' ? '' : 'none';
+}
+
+function copyApiKey() {
+  navigator.clipboard.writeText(state.apiKey).catch(()=>{});
+  $('api-key-short').textContent = state.apiKey.slice(0,8)+'...';
+  const btn = event.target; btn.textContent = 'Copied!'; btn.style.background='var(--green)'; btn.style.color='#fff';
+  setTimeout(()=>{btn.textContent='Copy';btn.style.background='';btn.style.color='';},2000);
+  state.apiKeyCopied = true;
+}
+
+function copyInstallCmd() {
+  const cmd = 'DD_API_KEY='+state.apiKey+' DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"';
+  navigator.clipboard.writeText(cmd).catch(()=>{});
+  const btn = event.target; btn.textContent='Copied!'; btn.style.background='var(--green)';btn.style.color='#fff';
+  setTimeout(()=>{btn.textContent='Copy Command';btn.style.background='';btn.style.color='';},2000);
+}
+
+function goStep5() {
+  if (state.step >= 4) return;
+  state.step = 4;
+  setStatus('Ready to install Datadog agent on EC2');
+  showPanel('panel-56');
+  setTab(5); setGuide(5);
+
+  // Restore SSH session output
+  const T = 'terminal-main';
+  addLine(T,'success','# SSH Session — ubuntu@'+state.instName+' ('+state.pubIp+')');
+  addLine(T,'out','# Paste the Datadog install command below and press Enter.');
+  addLine(T,'out','');
+  const cursor = document.createElement('div');
+  cursor.className='line'; cursor.innerHTML='<span class="prompt">ubuntu@'+state.instName+':~$</span> <span class="cursor"></span>';
+  $('terminal-main').appendChild(cursor);
+
+  $('btn-install').disabled = false;
+}
+
+// ══════════════════════════════════════════
+// STEP 5: Install Agent
+// ══════════════════════════════════════════
+async function runStep5() {
+  if (state.step >= 5) return;
+  state.step = 5;
+  $('btn-install').disabled = true;
+  setStatus('Installing Datadog agent...');
+
+  // Remove cursor line
+  const T = 'terminal-main';
+  const term = $(T);
+  if (term.lastChild) term.removeChild(term.lastChild);
+
+  await typeLines(T,[
+    ['_char','ubuntu@'+state.instName+':~$ DD_API_KEY='+state.apiKey+' DD_SITE="datadoghq.com" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"',14],
+    ['_wait',1000],
+    ['dd','  % Total  % Received  Dload  Upload  Speed',40],
+    ['dd','100  9821  100  9821    0     0  40210  0  --:--:--  40210',200],
+    ['_wait',400],
+    ['dd','* Checking for gpg2: OK',100],
+    ['dd','* Adding apt repository for Datadog...',300],
+    ['dd','  deb [signed-by=/usr/share/keyrings/datadog-archive-keyring.gpg] https://apt.datadoghq.com/ stable 7',100],
+    ['dd','* Installing apt-transport-https: OK',150],
+    ['dd','* Importing Datadog GPG key...',250],
+    ['dd','* Running apt-get update: OK',350],
+    ['_wait',600],
+    ['dd','* Installing datadog-agent:',100],
+    ['out','    Reading package lists... Done',80],
+    ['out','    Building dependency tree... Done',80],
+    ['out','    The following NEW packages will be installed: datadog-agent',100],
+    ['out','    Need to get 148 MB of archives.',80],
+    ['out','    Get:1 https://apt.datadoghq.com stable/7 amd64 datadog-agent 7.52.1-1 [148 MB]',200],
+    ['_wait',1000],
+    ['out','    Fetched 148 MB in 4s (37.0 MB/s)',300],
+    ['out','    Unpacking datadog-agent (7.52.1-1) ...',80],
+    ['out','    Setting up datadog-agent (7.52.1-1) ...',200],
+    ['_wait',400],
+    ['dd','* Writing API key to /etc/datadog-agent/datadog.yaml: OK',200],
+    ['dd','* Writing site to datadog.yaml (datadoghq.com): OK',150],
+    ['dd','* Enabling datadog-agent service: OK',200],
+    ['dd','* Starting datadog-agent service:',150],
+    ['success','    datadog-agent.service started successfully',200],
+    ['_wait',400],
+    ['dd','* Datadog Agent 7.52.1 installed successfully',300],
+  ]);
+
+  setRdot('r-agent','on');
+  setRsub('r-agent-sub','v7.52.1 · running');
+  state.agentInstalled = true;
+  setStatus('Agent installed — click Check Status to verify');
+  setTab(6); setGuide(6);
+  $('btn-verify').disabled = false;
+}
+
+// ══════════════════════════════════════════
+// STEP 6: Check Status
+// ══════════════════════════════════════════
+async function runStep6() {
+  if (state.step >= 6 || !state.agentInstalled) return;
+  state.step = 6;
+  $('btn-verify').disabled = true;
+  setStatus('Verifying agent connection to Datadog...');
+
+  const T = 'terminal-main';
+  addLine(T,'out','');
+
+  await typeLines(T,[
+    prompt('sudo systemctl status datadog-agent'),
+    ['_wait',500],
+    ['success','● datadog-agent.service - Datadog Agent',80],
+    ['out','     Loaded: loaded (/lib/systemd/system/datadog-agent.service; enabled)',60],
+    ['out','     Active: active (running) since '+new Date().toUTCString()+'; 18s ago',60],
+    ['out','   Main PID: 3142 (agent)',60],
+    ['out','     Memory: 87.4M',60],
+    ['out','        CPU: 1.184s',80],
+    ['out','',40],
+    prompt('sudo datadog-agent status | head -45'),
+    ['_wait',700],
+    ['dd','===============',40],
+    ['dd','Agent (v7.52.1)',40],
+    ['dd','===============',80],
+    ['out','  Status date: '+new Date().toUTCString(),60],
+    ['out','  Pid: 3142',50],
+    ['out','  Hostname: '+state.instName,50],
+    ['out','  Go Version: go1.21.5',50],
+    ['out','  Python Version: 3.11.7',50],
+    ['out','',40],
+    ['dd','=========',40],
+    ['dd','Collector',40],
+    ['dd','=========',80],
+    ['out','  Running checks:',40],
+    ['success','    cpu        (instance 0) [OK]   16.2ms',40],
+    ['success','    disk       (instance 0) [OK]    1.8ms',40],
+    ['success','    io         (instance 0) [OK]    5.1ms',40],
+    ['success','    memory     (instance 0) [OK]    2.3ms',40],
+    ['success','    network    (instance 0) [OK]    9.7ms',40],
+    ['success','    ntp        (instance 0) [OK]   15.0ms',80],
+    ['out','',40],
+    ['dd','========',40],
+    ['dd','Emitter',40],
+    ['dd','========',80],
+    ['success','  API Key: Valid',80],
+    ['success','  Connected to: app.datadoghq.com',200],
+    ['out','',60],
+    ['success','Agent is healthy and reporting metrics to Datadog SaaS.',0],
+  ]);
+
+  // Activate right panel
+  setRdot('r-dd','on');
+  setRsub('r-dd-sub','receiving metrics');
+  state.agentRunning = true;
+
+  $('dd-placeholder').style.display = 'none';
+  $('dd-dashboard').style.display = '';
+  $('live-dot').classList.add('on');
+
+  setStatus('Connected — host '+state.instName+' is live in Datadog');
+
+  // Mark all done
+  for (let i=1;i<=6;i++) $('tab-'+i).classList.add('done');
+  $('tab-6').classList.add('active');
+  for (let i=1;i<=6;i++) { const g=$('gi'+i); g.classList.remove('active'); g.classList.add('done'); }
+
+  startMetrics();
+  startLogs();
+}
+
+// ══════════════════════════════════════════
+// LIVE METRICS + LOGS
+// ══════════════════════════════════════════
+function rnd(a,b) { return +(Math.random()*(b-a)+a).toFixed(1); }
+
+function startMetrics() {
+  function update() {
+    const cpu = rnd(8,42), mem=rnd(25,62), disk=rnd(0.8,14), net=rnd(0.2,6);
+    $('m-cpu').textContent = cpu+'%'; $('pb-cpu').style.width=cpu+'%';
+    $('m-mem').textContent = mem+'%'; $('pb-mem').style.width=mem+'%';
+    $('m-disk').textContent = disk+' MB/s';
+    $('m-net').textContent  = net+' MB/s';
+    $('cpu-alert-val').textContent = cpu+'%';
+    $('m-cpu').className = 'metric-val '+(cpu>80?'warn':'ok');
+    $('m-mem').className = 'metric-val '+(mem>80?'warn':'ok');
+  }
+  update();
+  state.metricsInterval = setInterval(update, 3000);
+}
+
+const LOGS = [
+  ['INFO','agent','Started checks: cpu, disk, io, memory, network, ntp'],
+  ['INFO','forwarder','Payload sent to intake.datadoghq.com (248 series)'],
+  ['INFO','collector','Check cpu: 1 instance collected'],
+  ['INFO','collector','Check memory: 1 instance collected'],
+  ['WARN','ntp','NTP offset: 0.38s — within acceptable range'],
+  ['INFO','forwarder','Payload flushed to Datadog API (HTTP 202)'],
+  ['INFO','collector','Check disk: /dev/xvda1 78% free'],
+  ['INFO','collector','Check network: eth0 active'],
+  ['INFO','agent','Heartbeat sent to app.datadoghq.com'],
+  ['INFO','forwarder','Series payload compressed 4.8x'],
+  ['INFO','logs-agent','Tailer on /var/log/syslog — 8 lines forwarded'],
+  ['ERROR','resolver','DNS lookup timeout for s3.amazonaws.com (retrying)'],
+  ['INFO','resolver','DNS resolved: s3.amazonaws.com → 52.216.128.3'],
+];
+let logIdx=0;
+function startLogs() {
+  const stream = $('log-stream');
+  function addLog() {
+    const [lvl,src,msg] = LOGS[logIdx++ % LOGS.length];
+    const ts = new Date().toTimeString().slice(0,8);
+    const row = document.createElement('div');
+    row.className='log-line';
+    row.innerHTML=`<span class="log-ts">${ts}</span><span class="log-lvl ${lvl}">${lvl}</span><span class="log-msg">[${src}] ${msg}</span>`;
+    stream.appendChild(row);
+    if (stream.children.length>28) stream.removeChild(stream.firstChild);
+    stream.scrollTop=stream.scrollHeight;
+  }
+  addLog();
+  state.logInterval = setInterval(addLog, 2200);
+}
+
+// ══════════════════════════════════════════
+// RESET
+// ══════════════════════════════════════════
+function resetLab() {
+  if (state.metricsInterval) clearInterval(state.metricsInterval);
+  if (state.logInterval)     clearInterval(state.logInterval);
+  if (state.timerInterval)   clearInterval(state.timerInterval);
+  elapsedSec = 0;
+  $('timer').textContent = '00:00';
+
+  state = {
+    step:0, typing:false, timerStarted:false,
+    timerInterval:null, metricsInterval:null, logInterval:null,
+    ec2Running:false, sshConnected:false, ddSignedUp:false,
+    apiKeyCopied:false, agentInstalled:false, agentRunning:false, pemDownloaded:false,
+    instName:'my-ubuntu-server', pubIp:'54.198.12.77',
+    apiKey:'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6',
+  };
+
+  // Reset terminals
+  $('terminal-ssh').innerHTML = '';
+  $('terminal-main').innerHTML = '';
+  $('log-stream').innerHTML = '';
+
+  // Reset tabs
+  for(let i=1;i<=6;i++){$('tab-'+i).className='step-tab';}
+  $('tab-1').classList.add('active');
+
+  // Reset guide
+  for(let i=1;i<=6;i++){$('gi'+i).className='gi-num';}
+  $('gi1').classList.add('active');
+
+  // Reset resource dots
+  ['r-ec2','r-ssh','r-agent','r-dd'].forEach(id=>setRdot(id,''));
+  setRsub('r-ec2-sub','not started'); setRsub('r-ssh-sub','awaiting instance');
+  setRsub('r-agent-sub','not installed'); setRsub('r-dd-sub','awaiting agent');
+
+  // Reset info
+  ['pub-ip','dd-org-name','api-key-short'].forEach(id=>$(id).textContent='—');
+  $('pem-name').textContent='not created';
+  $('pem-status').textContent='Download PEM key before launching';
+  $('pem-status').style.color='';
+
+  // Reset DD panel
+  $('dd-placeholder').style.display='';
+  $('dd-dashboard').style.display='none';
+  $('live-dot').classList.remove('on');
+
+  // Reset buttons
+  $('btn-launch').disabled = false;
+  $('btn-ssh').disabled    = true;
+  $('btn-install').disabled= true;
+  $('btn-verify').disabled = true;
+
+  // Reset AWS form
+  $('ec2-name-input').value = 'my-ubuntu-server';
+  $('kp-name').value = 'datadog-lab-key';
+  pemDl = false;
+
+  // Reset DD form
+  $('dd-email').value=''; $('dd-email').style.borderColor='';
+  $('dd-pass').value='SecurePass2024!';
+  $('dd-org').value=''; $('dd-org').style.borderColor='';
+
+  showPanel('panel-1');
+  setStatus('Ready — click Launch EC2 to begin');
+}
+
+// Keep kp-name in sync with summary
+$('kp-name').addEventListener('input', () => {
+  $('summary-key').textContent = $('kp-name').value || 'datadog-lab-key';
+  $('pem-file-name').textContent = ($('kp-name').value||'datadog-lab-key')+'.pem';
+});
+</script>
+</body>
+</html>
