@@ -103,19 +103,17 @@ bash -c "$(curl -L https://s3.amazonaws.com/dd-agent-datadoghq-com/scripts/insta
 ### Step 8 — Enable APM in the Datadog Agent config
 
 ```bash
-sudo nano /etc/datadog-agent/datadog.yaml
-```
+sudo tee -a /etc/datadog-agent/datadog.yaml > /dev/null <<'EOF'
 
-Ensure these lines are present and uncommented:
-
-```yaml
 apm_config:
   enabled: true
 
 env: prod
+
 tags:
   - env:prod
   - service:nginx
+EOF
 ```
 
 Restart the Agent to apply changes:
