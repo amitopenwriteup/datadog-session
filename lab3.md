@@ -64,12 +64,8 @@ You can also open `http://<your-server-ip>` in a browser — you should see the 
 Edit the main Nginx config to add an APM-compatible log format:
 
 ```bash
-sudo nano /etc/nginx/nginx.conf
-```
+sudo tee -a /etc/nginx/nginx.conf > /dev/null <<'EOF'
 
-Inside the `http {}` block, add or update the log format:
-
-```nginx
 http {
     log_format datadog '$remote_addr - $remote_user [$time_local] '
                        '"$request" $status $body_bytes_sent '
@@ -78,6 +74,7 @@ http {
 
     access_log /var/log/nginx/access.log datadog;
 }
+EOF
 ```
 
 Save and test the config:
