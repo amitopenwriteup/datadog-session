@@ -2,14 +2,14 @@ Here's a structured **1-hour hands-on workshop** built around the [Datadog Audit
 
 ---
 
-# 🎓 Workshop: Datadog Audit Trail Dashboard — Clone, Customize & Investigate
+#  Workshop: Datadog Audit Trail Dashboard — Clone, Customize & Investigate
 
 **Duration:** 60 minutes | **Level:** Beginner–Intermediate
 **Prerequisites:** Datadog account with Audit Trail enabled, dashboard edit permissions
 
 ---
 
-## ⏱️ Module 1 — Orientation (10 min)
+##  Module 1 — Orientation (10 min)
 
 ### Step 1: Explore the Out-of-the-Box Dashboard (5 min)
 1. Navigate to the [Audit Trail Overview dashboard](/dash/integration/512/datadog-audit-trail-overview)
@@ -48,7 +48,7 @@ Here's a structured **1-hour hands-on workshop** built around the [Datadog Audit
 
 ---
 
-## ⏱️ Module 3 — Build New Widgets (20 min)
+##  Module 3 — Build New Widgets (20 min)
 
 ### Step 6: Create a "Dashboard Deletion Tracker" Widget (7 min)
 1. Click **+ Add Widgets**, drag a **Timeseries** widget into the "Dashboards, Monitors, and Notebooks" group
@@ -79,7 +79,7 @@ Here's a structured **1-hour hands-on workshop** built around the [Datadog Audit
 
 ---
 
-## ⏱️ Module 4 — Template Variables & Sharing (10 min)
+##  Module 4 — Template Variables & Sharing (10 min)
 
 ### Step 9: Add a New Template Variable (5 min)
 1. Click the **⚙️ gear icon** → **Edit Template Variables**
@@ -100,9 +100,9 @@ Here's a structured **1-hour hands-on workshop** built around the [Datadog Audit
 
 ---
 
-## ⏱️ Module 5 — Wrap-up Challenge (5 min)
+##  Module 5 — Wrap-up Challenge (5 min)
 
-### 🏆 Bonus Challenge
+###  Bonus Challenge
 Using what you've learned, create **one widget** that answers this question for your organization:
 
 > *"Which users made the most changes to monitors in the past 30 days, and were any monitors deleted?"*
@@ -114,7 +114,7 @@ Using what you've learned, create **one widget** that answers this question for 
 
 ---
 
-## 📋 Key Takeaways
+##  Key Takeaways
 
 | Concept | What You Learned |
 |---------|-----------------|
@@ -126,4 +126,3 @@ Using what you've learned, create **one widget** that answers this question for 
 
 ---
 
-Want me to save this workshop as a **Datadog Notebook** so participants can follow along interactively?
