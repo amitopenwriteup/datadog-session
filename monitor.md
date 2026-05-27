@@ -1,4 +1,4 @@
-# 🐕 Datadog Monitoring Workshop
+#  Datadog Monitoring Workshop
 ### A Hands-On Guide to Observability & Alerting
 
 ---
