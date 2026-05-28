@@ -1,4 +1,4 @@
-# 📊 Datadog Sheets Workshop
+#  Datadog Sheets Workshop
 ### Hands-On Guide to Data Analysis, Live Queries & Spreadsheet Workflows
 
 ---
