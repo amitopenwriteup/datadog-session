@@ -1,4 +1,4 @@
-# 🚨 Datadog Incident Response Workshop
+#  Datadog Incident Response Workshop
 ### Complete Guide to On-Call, Incident Management, Status Pages & Case Management
 
 ---
